@@ -1,4 +1,5 @@
 /**
+ * @deprecated
  * @param {string} sheetName
  * @param {number} startRow
  * @param {string|number|string[]} startColumn - Dapat berupa judul / header, notasi A1 (hanya support sampai 3 huruf), dan nomor kolom. Dapat memasukkan lebih dari 1 untuk judul kolom
@@ -27,7 +28,7 @@ function getA1N(sheetName, startRow, startColumn, options = {}) {
   const getColumnByType = column => {
     if (typeof column === 'string')
       return column.length > 1 || !Regex.ColumnLetter.WithoutNumber.test(column)
-        ? create(spreadsheetId, sheetName, { withLog }).column(column, { headerRow, isLastHeader, isLetter: true })
+        ? createRequest(spreadsheetId, sheetName, { withLog }).column(column, { headerRow, isLastHeader, isLetter: true })
         : column
     else if (typeof column === 'number')
       return getColumnLetter(column)
@@ -117,7 +118,7 @@ function toA1Notation(sheet, gridRange) {
   // 4. Konstruksi String Memori
   let startCell = `${startCol}${startRow}`,
     endCell = `${endCol}${endRow}`,
-    rangeNotation = ''
+    rangeNotation
 
   // Evaluasi Kolaps Koordinat (Menghindari "A1:A1", diganti menjadi "A1")
   if (startCell === endCell)
@@ -144,6 +145,7 @@ function toA1Notation(sheet, gridRange) {
 
 // Kedepannya akan dikembangkan agar bisa mengeksekusi semua hanya dalam 1 request. Tapi bentar.
 /**
+ * @deprecated
  * @param {string} sheetName
  * @param {string} startColumnTitle
  * @param {string} notEmptyColumnTitle

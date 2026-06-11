@@ -1,6 +1,13 @@
 /**
+ * Note buat besok:
+ * - Sederhanakan const range = prot.range di DS3-Proteksi.gs
+ * - Filter sheet Request Builder
+ * - Hapus fungsi getLong&ShortMonth
+ */
+
+/**
  * Konvensi penulisan skrip
- * A. Penamaan Fungsi Khusus (Di Dalam Class)
+ * A. Penamaan Fungsi
  *  1. Kata benda (noun) untuk fungsi yang mengembalikan nilai.
  *  2. Kata kerja (verb) untuk fungsi yang melakukan algoritma tertentu tanpa mengembalikan nilai.
  * B. Pengkategorian File

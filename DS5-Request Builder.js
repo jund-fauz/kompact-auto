@@ -1,3 +1,5 @@
+// noinspection JSValidateJSDoc
+
 /**
  * Tipe data diubah biar bisa autocomplete lokal?
  * @typedef {Sheets_v4.Sheets.V4.Schema.GridRange} GridRange
@@ -810,8 +812,7 @@ class SpreadsheetManipulation {
   protect(options = {}) {
     const { description = '', editors = null, deleteOldProtection = true } = options
     const addConfig = [],
-      deleteConfig = [],
-      spreadsheetId = this.spreadsheetId
+      deleteConfig = []
     /** @type {Sheets_v4.Sheets.V4.Schema.Sheet[]} */
     let sheets,
       { range = null, unprotectedRange = null } = options

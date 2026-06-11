@@ -16,7 +16,6 @@ var longMonths = Object.freeze([
  */
 function formatDate(options = {}) {
   const { input = null, format } = options
-  options = {}
   let date = input ? typeof input === 'string' ? new Date(input) : input : new Date()
   return Utilities.formatDate(date, 'Asia/Jakarta', format)
 }

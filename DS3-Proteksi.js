@@ -1,3 +1,5 @@
+// noinspection JSValidateJSDoc
+
 const batching = 100,
   getSs = Sheets.Spreadsheets.get
 

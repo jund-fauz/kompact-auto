@@ -42,7 +42,7 @@ function getFolderIdFromPath(path, options = {}) {
  * @param {string} name Nama harus lengkap dan sama agar file sesuai yang diharapkan
  * @param {string} type
  * @param {Object} options
- * @return {string}
+ * @return {string|null}
  */
 function getFileIdByName(name, type = Spreadsheet, options = {}) {
   if (notSameWith(type, Spreadsheet, Folder)) throw Error('Tipe tidak valid.')
@@ -62,13 +62,15 @@ function getFileIdByName(name, type = Spreadsheet, options = {}) {
       const result = retry(() => Drive.Files.list({ q, ...customConfig, ...config })?.files[0]?.id, { withReturnValue: true })
       if (withLog)
         Logger.log(`Result: ${result}`)
-      if (result != undefined)
+      if (result != null)
         addToGlobalCache(CacheType.FileIds, cacheKey, result)
       else
-        if (!notRequiredToFound)
-          throw Error(`Drive.Files.list return ${result}`)
-        else
+        if (notRequiredToFound)
           return null
+        else
+          { // noinspection ExceptionCaughtLocallyJS
+            throw Error(`Drive.Files.list return ${result}`)
+          }
     } catch (e) {
       templateLogError(e, 'getFileIdByName')
     }

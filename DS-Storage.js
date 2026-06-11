@@ -68,16 +68,14 @@ function set(source, keys, values = null) {
 function add(source, keys, values) {
   keys = lazyWrap(keys)
   values = lazyWrap(values)
-  const currentDatas = get(source, keys)
-  if (!isObject(currentDatas))
+  let currentDatas = get(source, keys)
+  if (!isObject(currentDatas) && !isArray(currentDatas))
     currentDatas = { keys: currentDatas }
   keys.forEach((key, index) => {
     if (isArray(currentDatas[key]))
       push(currentDatas[key], values[index])
-    else if (isObject(currentDatas[key]))
-      currentDatas[key] = { ...currentDatas[key], ...values[index] }
     else
-      currentDatas[key]
+      currentDatas[key] = { ...currentDatas[key], ...values[index] }
   })
   set(source, keys, values)
 }

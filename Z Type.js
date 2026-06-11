@@ -1,4 +1,6 @@
 // Internal Use
+// noinspection JSValidateJSDoc
+
 const CacheType = Object.freeze({
   Header: 'headers',
   SheetIds: 'sheetIds',

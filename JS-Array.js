@@ -231,5 +231,5 @@ function toParam(array) {
 function extract(array, ...at) {
   const { useWrap = 0, isOneBasedIndex = false } = getOptions(at),
     process = (content, at) => useWrap ? wrap(content[at - isOneBasedIndex], useWrap) : content[at - isOneBasedIndex]
-  return at.length ? at.map(at => array.map(content => process(content, at))) : process(content, at[0])
+  return at.length ? at.map(at => array.map(content => process(content, at))) : process(array, at[0])
 }
