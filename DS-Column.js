@@ -44,7 +44,7 @@ function getColumnCountFromA1N(range) {
 
 /**
  * Mengonversi nomor indeks kolom menjadi representasi huruf.
- * @param {number} columnNumber - Nomor kolom numerik (harus > 0).
+ * @param {number|string} columnNumber - Nomor kolom numerik (harus > 0).
  * @return {string} Representasi huruf kolom (misal: 'A', 'Z', 'AA').
  */
 function getColumnLetter(columnNumber) {

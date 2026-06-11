@@ -18,6 +18,7 @@ function getGlobalCache() {
  * @param {string} type
  * @param {string} cacheKey
  * @param {any} value
+ * @param {number} duration
  */
 function addToGlobalCache(type, cacheKey, value, duration = 21600) {
   const cache = getGlobalCache(),

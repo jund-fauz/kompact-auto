@@ -70,7 +70,7 @@ function getA1NByName(sheetName, rangeName, options = {}) {
  * Beroperasi secara lokal di RAM tanpa pemanggilan jaringan.
  * @param {string} a1Notation - Rentang dalam format A1 (misal: "Sheet1!B2:D")
  * @param {Object} options
- * @return {Sheets_v4.Sheets.V4.Schema.GridRange} Objek JSON GridRange.
+ * @return {GridRange} Objek JSON GridRange.
  */
 function toGridRange(a1Notation, options = {}) {
   const { sheetId = null } = options

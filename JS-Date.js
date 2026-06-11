@@ -12,8 +12,7 @@ var longMonths = Object.freeze([
 ])
 
 /**
- * @param {Date|string} input
- * @return {string}
+ * @param {Object} options
  */
 function formatDate(options = {}) {
   const { input = null, format } = options

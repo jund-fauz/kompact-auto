@@ -12,6 +12,7 @@ function getRowFromA1N(range, options = {}) {
 
 /**
  * @param {string} range
+ * @param {Object} options
  * @return {number}
  */
 function getRowCountFromA1N(range, options = {}) {

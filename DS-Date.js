@@ -1,5 +1,6 @@
 /**
  * @param {Date|string} input
+ * @param {boolean} dateOnly
  * @return {number}
  */
 function toSpreadsheetDate(input, dateOnly = typeof input === 'string' && input.length === 10) {

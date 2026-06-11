@@ -2,6 +2,8 @@
  * @typedef {Object} Event
  * @property {SpreadsheetApp.Range} range
  * @property {SpreadsheetApp.Spreadsheet} source
+ * @property {any} value
+ * @property {any} oldValue
  * @property {User} user
  */
 
@@ -12,7 +14,7 @@
 function getEventDetail(e) {
   const range = e.range,
     sheet = range.getSheet().getName()
-  Logger.log(`Range: ${`${sheet}!${range.getA1Notation()}`}\nValue: ${e.value ?? `''`}\nEdited by: ${e.user.getEmail()}`)
+  Logger.log(`Range: ${sheet}!${range.getA1Notation()}\nValue: ${e.value ?? `''`}\nEdited by: ${e.user.getEmail()}`)
   return {
     sheet,
     range: `${sheet}!${range.getA1Notation()}`,

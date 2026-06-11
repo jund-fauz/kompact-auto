@@ -9,8 +9,6 @@ function toast(...params) {
 /**
  * @param {HtmlService.HtmlTemplate} template
  * @param {Object|any} data
- * @param {number} width
- * @param {number} height
  * @param {Object} options
  */
 function show(template, data, options = {}) {

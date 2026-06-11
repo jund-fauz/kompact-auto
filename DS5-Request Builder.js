@@ -1,4 +1,5 @@
 /**
+ * Tipe data diubah biar bisa autocomplete lokal?
  * @typedef {Sheets_v4.Sheets.V4.Schema.GridRange} GridRange
  */
 
@@ -7,7 +8,7 @@ class SpreadsheetManipulation {
   /**
    * @param {string} spreadsheetIdOrTitle
    * @param {string} sheet
-   * @param {Object[]} requests
+   * @param {Object} options
    */
   constructor(spreadsheetIdOrTitle = null, sheet = null, options = {}) {
     const { requests = null, valueRequests = null, customRequests = null, except = null, batch = 1000, withoutRetry = false, postRun = null, withLog = true } = options
@@ -898,6 +899,7 @@ class SpreadsheetManipulation {
   /**
    * @param {string|string[]|Object[]|Object[][]} ranges
    * @param {Object|Object[]|Object[][]} values
+   * @param options
    */
   value(ranges, values, options = {}) {
     const isValuesArray = isArray(values)
@@ -933,6 +935,7 @@ class SpreadsheetManipulation {
   /**
    * @param {string|string[]|Object[]|Object[][]} ranges
    * @param {Object|Object[]|Object[][]|Object[][][]} values
+   * @param options
    */
   values(ranges, values, options = {}) {
     const isValuesArray = isArray(values),
@@ -1106,6 +1109,7 @@ class SpreadsheetManipulation {
 
   /**
    * @param {string|Object[]} ranges
+   * @param options
    * @return {string[]}
    */
   processRange(ranges, options = {}) {
@@ -1239,6 +1243,7 @@ class SpreadsheetManipulation {
  * Membuat instans class Request Builder
  * @param {string} spreadsheetIdOrTitle
  * @param {string} sheet
+ * @param options
  * @return {Spreadsheet}
  */
 function createRequest(spreadsheetIdOrTitle, sheet = null, options = {}) {

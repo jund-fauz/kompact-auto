@@ -122,7 +122,7 @@ function getValueWhere(arr, key, val) {
  * Ket: Fungsi hanya untuk manipulasi array
  * @param {Object[]} arr
  * @param {string} key
- * @param {any} exception
+ * @param {any} val
  * @return {Object[]}
  */
 function getValuesExcept(arr, key, val) {
