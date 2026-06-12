@@ -3,6 +3,14 @@
 var isArray = Array.isArray
 
 /**
+ * @param {any} arg
+ * @return {boolean}
+ */
+function isAllArray(...arg) {
+  return arg.length > 1 ? arg.every(isArray) : isArray(arg[0])
+}
+
+/**
  * @param {Object[]} array
  * @param {OrderBy} orderBy
  */
@@ -28,15 +36,6 @@ function slice(array, start, end = null) {
   if (start > 0)
     start = start - 1
   return end ? array.slice(start, end) : array.slice(start)
-}
-
-/**
- * @param {Object[]} array
- * @param {number} at 1-based index
- * @param {Object[]} data
- */
-function addAfter(array, at, ...data) {
-  array.splice(at, 0, ...flat(data))
 }
 
 /**
@@ -76,6 +75,39 @@ function flat(array) {
   return array
 }
 
+/**
+ * Mengambil dari Array
+ * @param {Object[]} source
+ * @param {number[]|string[]} at
+ * @return {Object|Object[]}
+ */
+function get(source, ...at) {
+  const { isOneBasedIndex = true } = getOptions(at)
+  at = flat(at)
+  if (at.length === 1) {
+    const index = at[0]
+    return index === 0
+      ? undefined
+      : index > 0
+        ? source[index - isOneBasedIndex]
+        : source.at(index)
+  }
+  return at.map(index => index === 0
+    ? undefined
+    : index > 0
+      ? source[index - isOneBasedIndex]
+      : source.at(index))
+}
+
+/**
+ * @param {Object[]} array
+ * @param {number} at 1-based index
+ * @param {Object[]} data
+ */
+function addAfter(array, at, ...data) {
+  array.splice(at, 0, ...flat(data))
+}
+
 /** Fungsi2 custom sesuai kebutuhan */
 
 function deleteNull(array) {
@@ -88,14 +120,6 @@ function deleteNull(array) {
  */
 function getOptions(array) {
   return isObject(array.at(-1)) ? array.pop() : {}
-}
-
-/**
- * @param {any} arg
- * @return {boolean}
- */
-function isAllArray(...arg) {
-  return arg.length > 1 ? arg.every(isArray) : isArray(arg[0])
 }
 
 /**

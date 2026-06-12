@@ -49,3 +49,10 @@ function endWith(value, ...searchValues) {
 function formatNumber(number, digitCount = 2) {
   return String(number).padStart(digitCount, '0')
 }
+
+/**
+ * @param {Object|Object[]} param
+ */
+function toString(param) {
+  return JSON.stringify(param)
+}

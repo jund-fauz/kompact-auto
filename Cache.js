@@ -5,7 +5,7 @@ function getGlobalCache() {
   if (globalThis._appCache) return globalThis._appCache
   const scriptCache = CacheService.getScriptCache(),
     cache = scriptCache.get('MASTER_APP_CACHE')
-  globalThis._appCache = cache ? JSON.parse(cache) : {
+  globalThis._appCache = cache ? toObject(cache) : {
     headers: {},
     folderIds: {},
     fileIds: {},

@@ -18,6 +18,7 @@ function show(template, data, options = {}) {
     keys.forEach(key => template[key] = data[key])
   } else
     template.data = data
+  // noinspection JSUndefinedPropertyAssignment
   template.isPrintMode = isPrint
   const htmlOutput = template.evaluate().setWidth(width).setHeight(height)
   ui().showModalDialog(htmlOutput, isPrint ? "Proses Cetak Berjalan..." : title)

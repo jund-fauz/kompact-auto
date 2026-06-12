@@ -4,10 +4,15 @@
  * @return {boolean}
  */
 function containOneOf(value, ...contains) {
+  const { caseSensitive = false } = getOptions(contains)
   contains = flat(contains)
   if (isTypeOf('string', value, contains)) {
     value = value.trim()
-    return contains.some(val => value.toLowerCase().includes(val.toLowerCase()))
+    return contains.some(val =>
+      caseSensitive
+        ? value.includes(val)
+        : value.toLowerCase().includes(val.toLowerCase())
+    )
   } else
     return contains.includes(value)
 }
@@ -16,7 +21,7 @@ function containOneOf(value, ...contains) {
  * @param {Object[]} arr
  * @result {boolean}
  */
-function isUnique(...arr) {
+function isSame(...arr) {
   return new Set(flat(arr)).size === 1
 }
 
@@ -26,7 +31,11 @@ function isUnique(...arr) {
  * @return {boolean}
  */
 function sameWith(value, ...arr) {
-  const { withLog = true, logic = And } = getOptions(arr)
+  const { withLog = true, logic = And } = (
+    isObject(arr.at(-1)) &&
+    ('withLog' in arr.at(-1)
+    || 'logic' in arr.at(-1))
+  ) ? getOptions(arr) : {}
   arr = flat(arr)
   if (withLog) {
     Logger.log(`Value: ${JSON.stringify(value)}`)
@@ -36,7 +45,9 @@ function sameWith(value, ...arr) {
     isObject(value) && isObject(val)
       ? Object.keys(val).every(key => val[key] === value[key])
       : val === value
-  return logic === And ? arr.every(compare) : arr.some(compare)
+  return logic === And
+    ? arr.every(compare)
+    : arr.some(compare)
 }
 
 /**
@@ -49,6 +60,7 @@ function notSameWith(value, ...arr) {
 }
 
 /**
+ * Membandingkan 3 value dengan prinsip "Between And"
  * @param {number} start
  * @param {number} value
  * @param {number} until
@@ -96,6 +108,7 @@ function isFalsy(...arr) {
 }
 
 /**
+ * Mengecek tipe data menggunakan "typeof" bawaan JavaScript untuk banyak variabel sekaligus
  * @param {string} type
  * @param {Object[]} array
  * @return {boolean}

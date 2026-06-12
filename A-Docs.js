@@ -21,7 +21,7 @@
  *  - Fungsi tetap digabung apabila tujuan fungsi masih sama, meskipun dapat diberi parameter dengan tipe yang berbeda-beda.
  * D. Parameter Fungsi
  *  - Parameter dideklarasikan tipe nya menggunakan JSDoc.
- *  - Maksimal jumlah parameter adalah 3. Lebih dari itu dibungkus menggunakan parameter 'options' berbentuk objek.
+ *  - Maksimal jumlah parameter yang wajib diisi adalah 3. Lebih dari itu dibungkus menggunakan parameter 'options' berbentuk objek.
  *  - Parameter bisa memiliki nilai default berupa nilai yang sering dipakai
  */
 

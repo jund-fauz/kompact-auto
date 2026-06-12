@@ -1,5 +1,5 @@
 // Internal Use
-// noinspection JSValidateJSDoc
+// noinspection JSValidateJSDoc,ES6ConvertVarToLetConst
 
 const CacheType = Object.freeze({
   Header: 'headers',
@@ -9,7 +9,8 @@ const CacheType = Object.freeze({
 })
 
 // External Use
-var ui = SpreadsheetApp.getUi
+/** @return {Ui} */
+var ui = () => SpreadsheetApp.getUi()
 
 /** @return {_Button} */
 var Button = () => ui().Button
@@ -17,11 +18,13 @@ var Button = () => ui().Button
 /** @return {_ButtonSet} */
 var ButtonSet = () => ui().ButtonSet
 
-var RangeProt = SpreadsheetApp.ProtectionType.RANGE
-var SheetProt = SpreadsheetApp.ProtectionType.SHEET
+var { RANGE: RangeProt, SHEET: SheetProt } = SpreadsheetApp.ProtectionType
+// noinspection ES6ConvertVarToLetConst
+var { GOOGLE_SHEETS: Spreadsheet, FOLDER: Folder } = MimeType
 
-var Spreadsheet = MimeType.GOOGLE_SHEETS
-var Folder = MimeType.FOLDER
+/** Type for Storage Manipulation */
+var array = 'ARRAY'
+var object = 'OBJECT'
 
 /** Sheet Type for Request Builder */
 var Daily = 'DAILY'

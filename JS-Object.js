@@ -8,9 +8,11 @@ function isObject(...values) {
 }
 
 /**
- * @param {Object[]} array
+ * @param {Object[]|string} param
  * @return {Object}
  */
-function toObject(...array) {
-  return Object.assign({}, ...flat(array))
+function toObject(param) {
+  if (typeof param === 'string')
+    return JSON.parse(param)
+  return Object.assign({}, ...param)
 }

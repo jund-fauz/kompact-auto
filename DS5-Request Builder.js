@@ -2,18 +2,18 @@
 
 /**
  * Tipe data diubah biar bisa autocomplete lokal?
- * @typedef {Sheets_v4.Sheets.V4.Schema.GridRange} GridRange
+ * @typedef {GoogleAppsScript.Sheets.Schema.GridRange} GridRange
  */
 
 
 class SpreadsheetManipulation {
   /**
-   * @param {string} spreadsheetIdOrTitle
-   * @param {string} sheet
+   * @param {string|null} spreadsheetIdOrTitle
+   * @param {string|string[]|null} sheet
    * @param {Object} options
    */
   constructor(spreadsheetIdOrTitle = null, sheet = null, options = {}) {
-    const { requests = null, valueRequests = null, customRequests = null, except = null, batch = 1000, withoutRetry = false, postRun = null, withLog = true } = options
+    const { requests = null, valueRequests = null, customRequests = null, except = null, batch = 1000, withoutRetry = false, afterRun = null, withLog = true } = options
     /** @type {Object[]} */
     this.requests = requests ?? []
     this.valueRequests = valueRequests ?? []
@@ -27,8 +27,8 @@ class SpreadsheetManipulation {
     this.withLog = withLog
     /** @type {{ activeSheet: SpreadsheetApp.Sheet }} */
     this.cache = {}
-    if (postRun)
-      this.postRun = postRun
+    if (afterRun)
+      this.afterRun = afterRun
     if (!this.spreadsheetId)
       throw Error('Tidak ada spreadsheet yang sedang aktif saat ini.')
     if (sheet)
@@ -57,8 +57,8 @@ class SpreadsheetManipulation {
         this.sheet = [...shortMonths]
         break
       case Active:
-        this.sheet = wrap(this.selectedSheet.getName())
-        this.sheetId = wrap(this.selectedSheet.getSheetId())
+        this.sheet = wrap(this.selectedSheet().getName())
+        this.sheetId = { [this.sheet[0]]: this.selectedSheet().getSheetId() }
         return this
       case All:
         this.sheet = Object.keys(cache)
@@ -114,14 +114,17 @@ class SpreadsheetManipulation {
    * Mengambil cell yang sedang aktif (dikelilingi oleh border yang lebih gelap)
    * @return {Object}
    */
-  selectedItem() {
-    const activeSheet = this.selectedSheet(),
+  selectedItem(options = {}) {
+    const { columnInNumber = false } = options,
+      activeSheet = this.selectedSheet(),
       cell = activeSheet.getActiveCell()
 
     return {
       sheet: activeSheet.getName(),
       range: cell.getA1Notation(),
-      column: getColumnLetter(cell.getColumn()),
+      column: columnInNumber
+        ? cell.getColumn()
+        : getColumnLetter(cell.getColumn()),
       row: cell.getRow(),
       value: cell.getValue()
     }
@@ -217,7 +220,7 @@ class SpreadsheetManipulation {
     return this.cache.timezone
   }
 
-  getValue(ranges, options = {}) {
+  value(ranges, options = {}) {
     const { vro = Formatted, ...optionsForAPI } = options
     ranges = this.processRange(ranges, { includeInvalid: true })[0]
     if (ranges.endsWith('#SKIP#'))
@@ -228,7 +231,7 @@ class SpreadsheetManipulation {
     return !values?.length ? undefined : values[0]
   }
 
-  getValues(ranges, options = {}) {
+  values(ranges, options = {}) {
     ranges = lazyWrap(ranges)
     if (!ranges.some(isArray))
       ranges = wrap(ranges)
@@ -374,6 +377,7 @@ class SpreadsheetManipulation {
           for (const columnIndex in specsMap) {
             const realIndex = columnIndex - column[0] + 1,
               { hiddenValues, visibleBackgroundColor } = specsMap[columnIndex]
+            // noinspection JSDeprecatedSymbols
             if (
               containOneOf(String(rowData[realIndex] || ''), hiddenValues)
               || (visibleBackgroundColor && !sameWith(metadatas?.[columnIndex]?.[row]?.values[0]?.effectiveFormat?.backgroundColor, visibleBackgroundColor, { withLog: this.withLog }))
@@ -462,9 +466,10 @@ class SpreadsheetManipulation {
     this.selectedSheet().setActiveRange(
       this.selectedSheet().getRange(this.processRange(to, { sheet: this.selectedSheet().getName() })[0])
     )
+    return this
   }
 
-  findRow(startRow, column, searchValues, options = {}) {
+  getRowByValue(startRow, column, searchValues, options = {}) {
     const { headerRow = 1, isLastHeader = false, defaultValue = 0 } = options,
       range = SpreadsheetApp
         .openById(this.spreadsheetId)
@@ -646,13 +651,15 @@ class SpreadsheetManipulation {
     return this
   }
 
-  copyPaste(sourceSheet, range, pasteType) {
+  copyPaste(sourceSheet, range, pasteType, options = {}) {
+    let { targetSheet = this.sheet.filter(name => name !== sourceSheet), targetRange = null } = options
+    targetSheet = lazyWrap(targetSheet)
     if (typeof sourceSheet === 'number')
       sourceSheet = sourceSheet.toString()
-    return this.addRequests(Object.entries(this.sheetId).filter(([name]) => name !== sourceSheet).map(([_, id]) => ({
+    return this.addRequests(targetSheet.map(name => ({
       copyPaste: {
         source: this.toGridRange(sourceSheet, range),
-        destination: this.toGridRange(id, range),
+        destination: this.toGridRange(name, targetRange ?? range),
         pasteType
       }
     })))
@@ -742,7 +749,9 @@ class SpreadsheetManipulation {
   }
 
   insertCell(range, type) {
-    if (notSameWith(type, Column, Row))
+    if (!type)
+      throw Error('Tipe belum didefinisikan')
+    else if (notSameWith(type, Column, Row))
       throw Error(`Tipe ${type} tidak valid.`)
 
     return this.addRequests(
@@ -902,13 +911,15 @@ class SpreadsheetManipulation {
    * @param {Object|Object[]|Object[][]} values
    * @param options
    */
-  value(ranges, values, options = {}) {
+  setValue(ranges, values, options = {}) {
     const isValuesArray = isArray(values)
     if (this.isRangesAnArray(ranges) && isTypeOf('string', ...ranges) && isValuesArray && ranges.length !== values.length)
       throw Error('Jumlah value dan range yang dimasukkan sebagai parameter tidak sama.')
     ranges = this.processRange(ranges, options)
     const isValues2d = isValuesArray && values.every(isArray)
     let currentNo = 0, currentSheet = null
+    if (this.withLog)
+      Logger.log(`Value: ${values}\nTipe Value: ${typeof values}\nIs Value Function: ${typeof values === 'function'}`)
     this.addValueRequests(
       ranges.map((/** @type {string} */ range) => {
         const sheet = range.split('!')[0]
@@ -917,16 +928,20 @@ class SpreadsheetManipulation {
           currentNo = 0
         } else
           currentNo++
-        const rowCount = getRowCountFromA1N(range)
+        const rowCount = getRowCountFromA1N(range),
+          calculatedValues = typeof values === 'function'
+            ? values(sheet, getColumnFromA1N(range, { isLetter: true }), getRowFromA1N(range))
+            : values,
+          isCalculated2d = isArray(calculatedValues) && calculatedValues.every(isArray)
+        if (this.withLog)
+          Logger.log(`Calculated Values: ${calculatedValues}`)
         return {
           range,
           values: isValues2d
             ? values
-            : isValuesArray
-              ? wrap(values, 1)
-              : repeat(wrap(typeof values === 'function'
-                ? values(sheet, getColumnFromA1N(range, { isLetter: true }), getRowFromA1N(range))
-                : values), rowCount)
+            : isCalculated2d
+              ? calculatedValues
+              : repeat(wrap(calculatedValues), rowCount)
         }
       })
     )
@@ -938,7 +953,7 @@ class SpreadsheetManipulation {
    * @param {Object|Object[]|Object[][]|Object[][][]} values
    * @param options
    */
-  values(ranges, values, options = {}) {
+  setValues(ranges, values, options = {}) {
     const isValuesArray = isArray(values),
       isValues2d = isValuesArray && values.every(isArray),
       isRangesAnArray = this.isRangesAnArray(ranges)
@@ -976,7 +991,8 @@ class SpreadsheetManipulation {
     return this
   }
 
-  run() {
+  /** @param {any[]} params */
+  run(...params) {
     if (this.emptyValueRequests.length)
       spreadsheet.Values.batchClear({ ranges: this.emptyValueRequests }, this.spreadsheetId)
     if (this.requests.length) {
@@ -985,8 +1001,8 @@ class SpreadsheetManipulation {
         spreadsheetId: this.spreadsheetId,
         withoutRetry: Object.keys(this.requests).some(request => request.toLowerCase().includes('protect'))
       })?.replies || []))
-      if (this.postRun)
-        this.postRun(0)
+      if (this.afterRun)
+        this.afterRun(0, ...params)
     }
     if (this.valueRequests.length)
       spreadsheet.Values.batchUpdate({ data: this.valueRequests, valueInputOption: this.isRaw ? Raw : UserEntered }, this.spreadsheetId)
@@ -1074,8 +1090,8 @@ class SpreadsheetManipulation {
         spreadsheetId: this.spreadsheetId,
         withoutRetry: Object.keys(toExecuteRequests).some(request => request.toLowerCase().includes('protect'))
       })?.replies || []))
-      if (this.postRun)
-        this.postRun(this.requests.length)
+      if (this.afterRun)
+        this.afterRun(this.requests.length)
     }
     return this
   }
@@ -1119,11 +1135,13 @@ class SpreadsheetManipulation {
     if (include && except)
       Logger.log('WARNING! Sintaks redundan. Pilih antara \'include\' ataupun \'except\'')
     if (include) {
-      include = lazyWrap(include)
+      if (typeof include === 'string')
+        include = include.split(', ')
       sheet = sheet.filter(sheet => include.includes(sheet))
     }
     if (except) {
-      except = lazyWrap(except)
+      if (typeof except === 'string')
+        except = except.split(', ')
       sheet = sheet.filter(sheet => !except.includes(sheet))
     }
     ranges = lazyWrap(ranges)
@@ -1218,6 +1236,8 @@ class SpreadsheetManipulation {
             endColumnLocal = getColumnLetter(startColumnNum + columnCount - 1)
           if (untilLastRow || endColumnLocal || endRow || rowCount)
             result += `:${endColumnLocal || startColumn}${!untilLastRow ? rowCount ? (range[1] + rowCount - 1) : endRow ?? range[1] ?? lastRows[range[0]] : ''}`
+          if (this.withLog)
+            Logger.log(result)
           return result
         }
         return startColumn.map(process)
@@ -1226,7 +1246,7 @@ class SpreadsheetManipulation {
     if (!includeInvalid)
       ranges = ranges.filter(range => !range.endsWith('#SKIP#'))
 
-    return withoutSheet ? unique(ranges.map(range => range.split('!')[0])) : ranges
+    return withoutSheet ? unique(ranges.map(range => range.split('!')[1])) : ranges
   }
 
   isRangesAnArray(ranges) {
@@ -1236,6 +1256,8 @@ class SpreadsheetManipulation {
   toGridRange(sheet, range) {
     if (typeof sheet === 'string')
       sheet = this.sheetId[sheet]
+    if (typeof range !== 'string')
+      range = this.processRange(range, { sheet })[0]
     return toGridRange(range, { sheetId: sheet })
   }
 }

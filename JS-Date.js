@@ -16,11 +16,19 @@ var longMonths = Object.freeze([
  */
 function formatDate(options = {}) {
   const { input = null, format } = options
-  let date = input ? typeof input === 'string' ? new Date(input) : input : new Date()
-  return Utilities.formatDate(date, 'Asia/Jakarta', format)
+  return Utilities.formatDate(
+    input
+      ? typeof input === 'string'
+        ? new Date(input)
+        : input
+      : new Date(),
+    'Asia/Jakarta',
+    format
+  )
 }
 
 /**
+ * Mengambil nomor bulan menggunakan basis satu
  * @param {Date} date
  * @return {number}
  */
@@ -29,34 +37,11 @@ function getMonth(date) {
 }
 
 /**
- * @param {Date} date
- * @param {boolean} isUppercase
- * @return {string}
- */
-function getShortMonth(date, isUppercase = false) {
-  let data = date.toLocaleString('id-ID', { month: 'short' })
-  if (isUppercase)
-    data = data.toUpperCase()
-  return data
-}
-
-/**
- * @param {Date} date
- * @param {boolean} isUppercase
- * @return {string}
- */
-function getLongMonth(date, isUppercase = false) {
-  let data = date.toLocaleString('id-ID', { month: 'long' })
-  if (isUppercase)
-    data = data.toUpperCase()
-  return data
-}
-
-/**
+ * Convert tanggal dalam bentuk angka dari spreadsheet ke objek Date di JavaScript
  * @param {number} value
  * @return {Date}
  */
-function toDate(value) {
+function toJSDate(value) {
   const date = new Date(Math.round((value - 25569) * 86400000))
   if (!isDate(date)) throw Error(`${value} bukanlah angka tanggal yang valid`)
   return date

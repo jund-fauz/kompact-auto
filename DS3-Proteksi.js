@@ -197,7 +197,7 @@ function addEmailsTo(fileIds, ...emails) {
   responses.forEach((response, no) => {
     if (response.getResponseCode() === 200) {
       /** @type {Sheets_v4.Sheets.V4.Schema.Spreadsheet} */
-      const data = JSON.parse(response.getContentText())
+      const data = toObject(response.getContentText())
       const fileUpdateInstructions = []
 
       data.sheets.forEach(sheet => {

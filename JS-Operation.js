@@ -14,7 +14,7 @@ function sum(...arr) {
 }
 
 /**
- * @param {number[]} arr
+ * @param {number[]|string[]} arr
  * @return {number}
  */
 function subtract(...arr) {
