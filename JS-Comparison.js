@@ -1,6 +1,10 @@
 /**
- * @param {any} value
- * @param {Object[]} contains
+ * @typedef {And|Or|string} Logic
+ */
+
+/**
+ * @param {string} value
+ * @param {string} contains
  * @return {boolean}
  */
 function containOneOf(value, ...contains) {
@@ -18,8 +22,8 @@ function containOneOf(value, ...contains) {
 }
 
 /**
- * @param {Object[]} arr
- * @result {boolean}
+ * @param {any} arr
+ * @return {boolean}
  */
 function isSame(...arr) {
   return new Set(flat(arr)).size === 1
@@ -27,14 +31,14 @@ function isSame(...arr) {
 
 /**
  * @param {any} value
- * @param {Object[]} arr
+ * @param {any|{withLog?: boolean, logic: Logic}} arr
  * @return {boolean}
  */
 function sameWith(value, ...arr) {
   const { withLog = true, logic = And } = (
     isObject(arr.at(-1)) &&
     ('withLog' in arr.at(-1)
-    || 'logic' in arr.at(-1))
+      || 'logic' in arr.at(-1))
   ) ? getOptions(arr) : {}
   arr = flat(arr)
   if (withLog) {
@@ -52,7 +56,7 @@ function sameWith(value, ...arr) {
 
 /**
  * @param {any} value
- * @param {Object[]} arr
+ * @param {any} arr
  * @return {boolean}
  */
 function notSameWith(value, ...arr) {
@@ -79,7 +83,7 @@ function between(start, value, until, compare = '<') {
 
 /**
  * @param {number} value
- * @param {number[]} comparations
+ * @param {number} comparations
  */
 function lowerThan(value, ...comparations) {
   const { logic = And } = getOptions(comparations),
@@ -90,32 +94,39 @@ function lowerThan(value, ...comparations) {
 }
 
 /**
- * @param {any|any[]} arr
+ * @param {any|{logic: Logic}} array
  * @return {boolean}
  */
-function isTruthy(...arr) {
-  arr = flat(arr)
-  return arr.filter(data => data).length === arr.length
+function isTruthy(...array) {
+  const { logic = And } = getOptions(array)
+  array = flat(array)
+  return logic === And
+    ? array.filter(data => data).length === array.length
+    : array.some(data => data)
 }
 
 /**
- * @param {any|any[]} arr
+ * @param {any|{logic: Logic}} array
  * @return {boolean}
  */
-function isFalsy(...arr) {
-  arr = flat(arr)
-  return arr.filter(data => !data).length === arr.length
+function isFalsy(...array) {
+  const { logic = And } = getOptions(array)
+  array = flat(array)
+  return logic === And
+    ? array.filter(data => !data).length === array.length
+    : array.some(data => !data)
 }
 
 /**
  * Mengecek tipe data menggunakan "typeof" bawaan JavaScript untuk banyak variabel sekaligus
  * @param {string} type
- * @param {Object[]} array
+ * @param {any} array
  * @return {boolean}
  */
 function isTypeOf(type, ...array) {
   const { logic = And } = getOptions(array)
+  array = flat(array)
   return logic === And
-    ? flat(array).every(val => typeof val === type)
-    : flat(array).some(val => typeof val === type)
+    ? array.every(val => typeof val === type)
+    : array.some(val => typeof val === type)
 }

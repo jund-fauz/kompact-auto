@@ -11,7 +11,7 @@ function isAllArray(...arg) {
 }
 
 /**
- * @param {Object[]} array
+ * @param {any[]} array
  * @param {OrderBy} orderBy
  */
 function sort(array, orderBy = OrderBy.a) {
@@ -27,10 +27,11 @@ function sort(array, orderBy = OrderBy.a) {
 
 /**
  * Sama seperti fungsi slice pada array, tapi ini menggunakan 1-based index dan end tetap dimasukkan ke hasil array.
- * @param {Object[]} array
+ * @template T
+ * @param {T[]} array
  * @param {number} start 1-based index
  * @param {number|null} end 1-based index
- * @return {Object[]}
+ * @return {T[]}
  */
 function slice(array, start, end = null) {
   if (start > 0)
@@ -39,22 +40,24 @@ function slice(array, start, end = null) {
 }
 
 /**
- * @param {Object[]} array
+ * @param {any[]} array
  * @param {Object} options
  * @return {string}
  */
 function join(array, options = {}) {
   switch (array.length) {
-    case 0: return ''
-    case 1: return String(array[0])
+    case 0:
+      return ''
+    case 1:
+      return String(array[0])
   }
   const { and = 'dan' } = options
   return `${array.slice(0, -1).join(', ')} ${and} ${array.at(-1)}`
 }
 
 /**
- * @param {Object[]} array
- * @param {Object[]} values
+ * @param {any[]} array
+ * @param {any[]} values
  */
 function push(array, ...values) {
   const { many = false } = getOptions(values)
@@ -66,8 +69,9 @@ function push(array, ...values) {
 
 /**
  * Lazy flat untuk array 2D
- * @param {Object[]|Object[][]} array
- * @return {Object[]}
+ * @template T
+ * @param {T[]|T[][]} array
+ * @return {T[]}
  */
 function flat(array) {
   if (array.some(isArray))
@@ -77,32 +81,26 @@ function flat(array) {
 
 /**
  * Mengambil dari Array
- * @param {Object[]} source
- * @param {number[]|string[]} at
- * @return {Object|Object[]}
+ * @template T
+ * @param {T[]} source
+ * @param {number|string|{defaultIndex: boolean}} at
+ * @return {T|T[]}
  */
-function get(source, ...at) {
-  const { isOneBasedIndex = true } = getOptions(at)
+function getFromArray(source, ...at) {
+  const { defaultIndex = false } = getOptions(at)
   at = flat(at)
-  if (at.length === 1) {
-    const index = at[0]
-    return index === 0
-      ? undefined
-      : index > 0
-        ? source[index - isOneBasedIndex]
-        : source.at(index)
-  }
-  return at.map(index => index === 0
+  const process = index => index === 0
     ? undefined
     : index > 0
-      ? source[index - isOneBasedIndex]
-      : source.at(index))
+      ? source[index - !defaultIndex]
+      : source.at(index)
+  return at.length > 2 ? at.map(process) : process(at)
 }
 
 /**
- * @param {Object[]} array
+ * @param {any[]} array
  * @param {number} at 1-based index
- * @param {Object[]} data
+ * @param {any} data
  */
 function addAfter(array, at, ...data) {
   array.splice(at, 0, ...flat(data))
@@ -115,7 +113,7 @@ function deleteNull(array) {
 }
 
 /**
- * @param {Object[]} array
+ * @param {any[]} array
  * @return {Object}
  */
 function getOptions(array) {
@@ -123,8 +121,9 @@ function getOptions(array) {
 }
 
 /**
- * @param {Object|Object[]} value
- * @return {Object[]}
+ * @template T
+ * @param {T|T[]} value
+ * @return {T[]}
  */
 function lazyWrap(value) {
   if (isArray(value)) return value
@@ -133,10 +132,11 @@ function lazyWrap(value) {
 
 /**
  * Ket: Fungsi hanya untuk manipulasi array
- * @param {Object[]} arr
+ * @template T
+ * @param {T[]} arr
  * @param {string} key
- * @param {any} val
- * @return {any}
+ * @param {T} val
+ * @return {T}
  */
 function getValueWhere(arr, key, val) {
   return arr.find(k => k[key] === val)
@@ -144,18 +144,21 @@ function getValueWhere(arr, key, val) {
 
 /**
  * Ket: Fungsi hanya untuk manipulasi array
- * @param {Object[]} arr
+ * @template T
+ * @param {T[]} arr
  * @param {string} key
- * @param {any} val
- * @return {Object[]}
+ * @param {T} val
+ * @return {T[]}
  */
 function getValuesExcept(arr, key, val) {
   return arr.filter(k => k[key] !== val)
 }
 
 /**
- * @param {Object[][]} values
+ * @template T
+ * @param {T[][]} values
  * @param {number} column
+ * @return {T[]}
  */
 function getValuesByColumn(values, column) {
   return values.map(rowData => rowData[column - 1])
@@ -163,7 +166,7 @@ function getValuesByColumn(values, column) {
 
 /**
  * @param {any} search
- * @param {Object[]} values
+ * @param {any[]} values
  * @param {Object} options
  * @return {number[]|number[][]}
  */
@@ -198,18 +201,20 @@ function getIndexesWith(search, values, options = {}) {
 }
 
 /**
- * @param {any} valueOrFunction
+ * @template T
+ * @param {T} valueOrFunction
  * @param {number} count
- * @return {Object[]}
+ * @return {T[]}
  */
 function repeat(valueOrFunction, count = 1) {
   return Array.from({ length: count }, typeof valueOrFunction === 'function' ? valueOrFunction : () => valueOrFunction)
 }
 
 /**
- * @param {any} value
+ * @template T
+ * @param {T} value
  * @param {number} dimension
- * @return {any}
+ * @return {Array<T>}
  */
 function wrap(value, dimension = 1) {
   iterate(() => value = [value], { until: dimension - 1 })
@@ -217,9 +222,10 @@ function wrap(value, dimension = 1) {
 }
 
 /**
- * @param {Object[]} array
+ * @template T
+ * @param {T[]} array
  * @param {number} dimension
- * @return {any}
+ * @return {Array<T>}
  */
 function wrapInside(array, dimension = 1) {
   return array.map(value => wrap(value, dimension))
@@ -227,8 +233,8 @@ function wrapInside(array, dimension = 1) {
 
 /**
  * Pembersihan data duplikat di sebuah array
- * @param {Object[]} array
- * @return {Object[]}
+ * @param {any} array
+ * @return {any[]}
  */
 function unique(...array) {
   array = flat(array).filter(data => data)
@@ -236,8 +242,9 @@ function unique(...array) {
 }
 
 /**
- * @param {Object[][]} array
- * @return {Object[][]}
+ * @template T
+ * @param {T[][]} array
+ * @return {Array<T>}
  */
 function toParam(array) {
   let result = []
@@ -248,9 +255,10 @@ function toParam(array) {
 
 /**
  * Extract 2d array by index
- * @param {Object[][]} array
- * @param {number[]} at
- * @return {Object[]|Object[][]|Object[][][]}
+ * @template T
+ * @param {T[][]} array
+ * @param {number} at
+ * @return {Array<T>}
  */
 function extract(array, ...at) {
   const { useWrap = 0, isOneBasedIndex = false } = getOptions(at),

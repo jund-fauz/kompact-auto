@@ -1,7 +1,8 @@
 /**
- * @param {Function} func
+ * @template T
+ * @param {() => void|T} func
  * @param {Object} options
- * @return {void|Object[]}
+ * @return {void|T[]}
  */
 function iterate(func, options = {}) {
   let { from = 1, until = 1 } = options
@@ -20,9 +21,10 @@ function iterate(func, options = {}) {
 }
 
 /**
- * @param {Function} func
+ * @template T
+ * @param {() => void|T} func
  * @param {Object} options
- * @return {void|any}
+ * @return {void|T[]|any}
  */
 function retry(func, options = {}) {
   const { attempts = 3, waitingInSec = 2, withReturnValue = false, fallback = null } = options

@@ -20,8 +20,8 @@ function syncProtectionEditors(source, target, options = {}) {
   const fields = 'sheets(properties(title),protectedRanges(protectedRangeId,range,description,editors))'
   /** @type {Sheets_v4.Sheets.V4.Schema.Spreadsheet} */
   const sourceData = retry(() => getSs(source, { fields, ranges: sheet }), { withReturnValue: true, waitingInSec: 2 }),
-    targetData = retry(() => getSs(target, { fields, ranges: sheet }), { withReturnValue: true, waitingInSec: 2 }),
-    sourceProtectionMap = {}
+    targetData = retry(() => getSs(target, { fields, ranges: sheet }), { withReturnValue: true, waitingInSec: 2 })
+  const sourceProtectionMap = {}
   let requests = []
   sourceData.sheets.forEach(sheet => {
     if (sheet.protectedRanges)
@@ -73,7 +73,7 @@ function syncProtectionEditors(source, target, options = {}) {
 function syncProtectionEditorsBetweenSheet(sourceSheetId, targetSheetIds, options = {}) {
   // 1. Normalisasi Parameter (Koersi Matriks Numerik)
   if (!targetSheetIds || (isArray(targetSheetIds) && !targetSheetIds.length)) {
-    throw new Error("[FATAL] Parameter targetSheetIds kosong atau tidak memiliki nilai valid.")
+    throw new Error('[FATAL] Parameter targetSheetIds kosong atau tidak memiliki nilai valid.')
   }
 
   // Memaksa input menjadi Array meskipun argumen yang diberikan hanya 1 angka (number)
@@ -116,18 +116,20 @@ function syncProtectionEditorsBetweenSheet(sourceSheetId, targetSheetIds, option
     Logger.log(`[WARNING] Target dilewati (ID Sheet tidak eksis): [${missing.join(', ')}]`)
   }
 
-  const sourceProtectionMap = {}
+  const sourceProtectionMap = {},
+    getKeyFromRange = prot => {
+      const range = prot.range,
+        isSheetLevel = !('startRowIndex' in range) && !('endRowIndex' in range) && !('startColumnIndex' in range) && !('endColumnIndex' in range)
+      return isSheetLevel
+        ? 'SHEET_LEVEL'
+        : `${range.startRowIndex || 0}_${range.endRowIndex || 'MAX'}_${range.startColumnIndex || 0}_${range.endColumnIndex || 'MAX'}`
+    }
   let requests = []
 
   // 3. Pembangunan Peta Memori Sumber (Hanya dieksekusi 1 kali)
   if (sourceSheet.protectedRanges) {
     sourceSheet.protectedRanges.forEach(prot => {
-      const range = prot.range
-      const isSheetLevel = !('startRowIndex' in range) && !('endRowIndex' in range) && !('startColumnIndex' in range) && !('endColumnIndex' in range)
-      const key = isSheetLevel
-        ? 'SHEET_LEVEL'
-        : `${range.startRowIndex || 0}_${range.endRowIndex || 'MAX'}_${range.startColumnIndex || 0}_${range.endColumnIndex || 'MAX'}`
-      sourceProtectionMap[key] = prot.editors
+      sourceProtectionMap[getKeyFromRange(prot)] = prot.editors
     })
   }
 
@@ -135,11 +137,7 @@ function syncProtectionEditorsBetweenSheet(sourceSheetId, targetSheetIds, option
   targetSheetsData.forEach(targetSheet => {
     if (targetSheet.protectedRanges) {
       targetSheet.protectedRanges.forEach(prot => {
-        const range = prot.range
-        const isSheetLevel = !('startRowIndex' in range) && !('endRowIndex' in range) && !('startColumnIndex' in range) && !('endColumnIndex' in range)
-        const key = isSheetLevel
-          ? 'SHEET_LEVEL'
-          : `${range.startRowIndex || 0}_${range.endRowIndex || 'MAX'}_${range.startColumnIndex || 0}_${range.endColumnIndex || 'MAX'}`
+        const key = getKeyFromRange(prot)
 
         if (withLog)
           Logger.log(`Memproses: ${key}`)
@@ -261,18 +259,19 @@ function syncRoles(spreadsheetSourceId, spreadsheetTargetId, asViewer = false) {
   if (!spreadsheetSourceId || !spreadsheetTargetId)
     throw Error(`⚠️ copyRoles dibatalkan: sourceId="${spreadsheetSourceId}", targetId="${spreadsheetTargetId}"`)
 
-  const token = ScriptApp.getOAuthToken(), batchUrl = 'https://www.googleapis.com/batch/drive/v3', boundary = `batch_api_boundary_${new Date().getTime()}`
+  const token = ScriptApp.getOAuthToken(), batchUrl = 'https://www.googleapis.com/batch/drive/v3',
+    boundary = `batch_api_boundary_${new Date().getTime()}`
   let payload = ''
 
   // Get existing permissions on target to avoid duplicates
   const existingPermissions = retry(() => Drive.Permissions.list(spreadsheetTargetId, {
-    fields: "permissions(emailAddress)",
+    fields: 'permissions(emailAddress)',
     supportsAllDrives: true
   }).permissions, { withReturnValue: true, waitingInSec: 2 }) || [], existingMap = new Map()
   existingPermissions.forEach(perm => existingMap.set((perm.emailAddress || perm.type).toLowerCase(), perm.role))
 
   Drive.Permissions.list(spreadsheetSourceId, {
-    fields: "permissions(emailAddress, role, type, domain)",
+    fields: 'permissions(emailAddress, role, type, domain)',
     supportsAllDrives: true
   }).permissions.forEach((permission, no) => {
     if (permission.role === 'owner') return

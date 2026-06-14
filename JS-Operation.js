@@ -1,5 +1,5 @@
 /**
- * @param {number[]} arr
+ * @param {number|string} arr
  * @return {number}
  */
 function sum(...arr) {

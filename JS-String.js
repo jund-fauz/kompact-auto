@@ -3,11 +3,34 @@
  * @return {string}
  */
 function toCamelCase(string) {
+  if (string.length === 1 && string.match(/[^a-zA-Z0-9]+(.)/g).length)
+    return string
   return string
     .toLowerCase()
     .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
     .replace(/^[A-Z]/, (char) => char.toLowerCase())
     .replace(/[\W]+/, '')
+}
+
+var Capitalize = 'capitalize',
+  LowerCase = 'lowercase',
+  UpperCase = 'uppercase'
+
+/**
+ * @param {string} string
+ * @param {Capitalize|LowerCase|UpperCase|string} mode
+ * @return {string}
+ */
+function normalizeFromCamelCase(string, mode = Capitalize) {
+  const result = string.replace(/[A-Z]/, ' $1')
+  switch (mode) {
+    case Capitalize:
+      return capitalize(result)
+    case LowerCase:
+      return result.toLowerCase()
+    case UpperCase:
+      return result.toUpperCase()
+  }
 }
 
 /**

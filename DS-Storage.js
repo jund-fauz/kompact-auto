@@ -1,4 +1,3 @@
-// noinspection JSUnusedGlobalSymbols
 
 /** Manipulasi Storage App Script */
 class Storage {
@@ -8,7 +7,7 @@ class Storage {
   }
 
   /**
-   * @param {string[]} keys
+   * @param {string|string[]} keys
    * @return {Object|Object[]}
    */
   get(...keys) {
@@ -49,7 +48,7 @@ class Storage {
     const { defaultWrapAs = object } = options
     keys = lazyWrap(keys)
     values = lazyWrap(values)
-    let currentDatas = get(keys)
+    let currentDatas = this.get(keys)
     keys.forEach((key, no) => {
       if (isArray(currentDatas[key]))
         push(currentDatas[key], values[no])
@@ -80,7 +79,7 @@ class Storage {
 }
 
 /**
- * @param {PropertiesService.Properties} storage
+ * @param {GoogleAppsScript.Properties.Properties} storage
  * @return {Storage}
  */
 function initializeStorage(storage) {

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["ES2020"],
+    "noEmit": true
+  },
+  "include": [
+    "**/*",
+    "global.d.ts",
+  ]
+}

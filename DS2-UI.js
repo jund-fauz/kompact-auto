@@ -1,5 +1,6 @@
+
 /**
- * @param {string[]|number[]} params
+ * @param {string|number} params
  */
 function toast(...params) {
   SpreadsheetApp.getActiveSpreadsheet().toast(...params)
@@ -7,7 +8,7 @@ function toast(...params) {
 
 // Menampilkan halaman print
 /**
- * @param {HtmlService.HtmlTemplate} template
+ * @param {GoogleAppsScript.HTML.HtmlTemplate} template
  * @param {Object|any} data
  * @param {Object} options
  */
@@ -25,9 +26,9 @@ function show(template, data, options = {}) {
 }
 
 /**
- * @param {HtmlService.HtmlTemplate} template
+ * @param {GoogleAppsScript.HTML.HtmlTemplate} template
  * @param {Object|null|any} data
- * @return {HtmlService.HtmlOutput}
+ * @return {GoogleAppsScript.HTML.HtmlOutput}
  */
 function templating(template, data = null) {
   if (data)
@@ -42,7 +43,7 @@ function templating(template, data = null) {
 /**
  * @param {string} content
  * @param {Object} options
- * @return {Button}
+ * @return {GoogleAppsScript.Base.Button}
  */
 function alert(content, options = {}) {
   const { buttonSet = ButtonSet().OK, title = '' } = options

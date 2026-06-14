@@ -47,15 +47,15 @@
 
   2. Fungsi yang Memanggil Fungsi Lain
      -> Fungsi yang di dalamnya terdapat pemanggilan ke fungsi lain di library ini.
-     - add (memanggil: addRequest, get, id, isObject, lazyWrap, push, set, toGridRange, values)
-     - addEmailsTo (memanggil: batchUpdate, get, id, push)
+     - add (memanggil: addRequest, getFromArray, id, isObject, lazyWrap, push, set, toGridRange, values)
+     - addEmailsTo (memanggil: batchUpdate, getFromArray, id, push)
      - addEmptyValueRequest (memanggil: filter, flat, push, values)
      - addRequest (memanggil: batchUpdate, filter, flat, isObject, push)
      - addToGlobalCache (memanggil: getGlobalCache, value)
      - addValueRequest (memanggil: batchUpdate, filter, flat, isObject, push, values)
      - alert (memanggil: ButtonSet, includes)
      - autoFill (memanggil: addRequest, toGridRange, values)
-     - batchUpdate (memanggil: get, getActiveSpreadsheet, retry)
+     - batchUpdate (memanggil: getFromArray, getActiveSpreadsheet, retry)
      - between (memanggil: compare, value)
      - buildFromExistingRequests (memanggil: getActiveSpreadsheet)
      - capitalize (memanggil: slice, value)
@@ -65,7 +65,7 @@
      - copyPaste (memanggil: addRequest, batchUpdate, filter, flat, getActiveSpreadsheet, getSheet, id, includes, isAllArray, toGridRange, unique)
      - copySheet (memanggil: rename, resetCache, setSheet, values)
      - create (memanggil: getActiveSpreadsheet)
-     - delete (memanggil: addRequest, filter, get, includes, lazyWrap, notSameWith, repeat)
+     - delete (memanggil: addRequest, filter, getFromArray, includes, lazyWrap, notSameWith, repeat)
      - deleteNull (memanggil: filter, value)
      - dif (memanggil: flat, getOptions)
      - empty (memanggil: addEmptyValueRequest, filter, processRange, values)
@@ -74,11 +74,11 @@
      - filterCriteria (memanggil: batchUpdate, filter, getA1N, push, toGridRange)
      - findRow (memanggil: getA1N, getActiveSpreadsheet, getValues, includes, processRange, values)
      - formattingFunc (memanggil: formatDate, getHeaders, getIndexesWith, isDate, slice, toCamelCase, value, values)
-     - get (memanggil: flat, getOptions)
+     - getFromArray (memanggil: flat, getOptions)
      - getA1N (memanggil: getActiveSpreadsheet)
      - getA1NByEmptyRow (memanggil: findRow, getA1N, getActiveSpreadsheet)
-     - getA1NByName (memanggil: get, getActiveSpreadsheet, toA1Notation)
-     - getActive (memanggil: getColumnLetter, getValue, value)
+     - getA1NByName (memanggil: getFromArray, getActiveSpreadsheet, toA1Notation)
+     - getActive (memanggil: getColumnLetter, get, value)
      - getAllDailySheets (memanggil: filter, getActiveSpreadsheet, notSameWith, sort, test, value)
      - getAllMonthSheets (memanggil: filter, getActiveSpreadsheet, includes)
      - getAllSheetsByName (memanggil: containOneOf, getActiveSpreadsheet, retry, toCamelCase)
@@ -89,20 +89,20 @@
      - getEventDetail (memanggil: getColumnLetter, getSheet, value)
      - getFileIdsIn (memanggil: getFolderIdFromPath, id, includes, retry, templateLogError)
      - getFolderIdFromPath (memanggil: addToGlobalCache, filter, getGlobalCache, id, replace, retry)
-     - getGlobalCache (memanggil: get, value)
+     - getGlobalCache (memanggil: getFromArray, value)
      - getHeaders (memanggil: addToGlobalCache, getActiveSpreadsheet, getGlobalCache, getValues)
      - getIndexesWith (memanggil: filter, includes, push, slice, value, values)
      - getLongMonth (memanggil: id, value)
      - getMonthlySheet (memanggil: filter, getActiveSpreadsheet)
      - getOptions (memanggil: isObject)
-     - getRemoteEventDetail (memanggil: getColumnLetter, getSheet, getValue, value)
+     - getRemoteEventDetail (memanggil: getColumnLetter, getSheet, get, value)
      - getRowCountFromA1N (memanggil: includes)
      - getRowFromA1N (memanggil: includes)
-     - getSheet (memanggil: addToGlobalCache, filter, get, getActiveSpreadsheet, getGlobalCache, includes, retry, unique)
+     - getSheet (memanggil: addToGlobalCache, filter, getFromArray, getActiveSpreadsheet, getGlobalCache, includes, retry, unique)
      - getShortMonth (memanggil: id)
      - getSpreadsheetTimeZone (memanggil: batchUpdate, getActiveSpreadsheet)
-     - getValue (memanggil: flat, get, getA1N, getActiveSpreadsheet, processRange, values)
-     - getValues (memanggil: delete, flat, get, getA1N, getActiveSpreadsheet, getColumnFromA1N, getRowCountFromA1N, getRowFromA1N, isAllArray, isObject, max, push, repeat, replace, sum, unique, values, wrap)
+     - get (memanggil: flat, getFromArray, getA1N, getActiveSpreadsheet, processRange, values)
+     - getValues (memanggil: delete, flat, getFromArray, getA1N, getActiveSpreadsheet, getColumnFromA1N, getRowCountFromA1N, getRowFromA1N, isAllArray, isObject, max, push, repeat, replace, sum, unique, values, wrap)
      - getValuesByColumn (memanggil: values)
      - getValuesExcept (memanggil: filter, values)
      - grantAllImportrange (memanggil: add, getActiveSpreadsheet, id, includes)
@@ -122,11 +122,11 @@
      - join (memanggil: slice, values)
      - lazyWrap (memanggil: value, wrap)
      - lowerThan (memanggil: flat, getOptions, value)
-     - max (memanggil: flat, get, getColumnLetter)
+     - max (memanggil: flat, getFromArray, getColumnLetter)
      - notSameWith (memanggil: compare, flat, includes, value)
      - process (memanggil: isObject, value, values)
-     - processRange (memanggil: filter, get, getColumnLetter, getValues, includes, isObject, isTypeOf, lazyWrap, replace, sameWith, slice, toObject, wrap)
-     - protect (memanggil: addRequest, between, filter, get, id, includes, processRange, push, toGridRange, toObject)
+     - processRange (memanggil: filter, getFromArray, getColumnLetter, getValues, includes, isObject, isTypeOf, lazyWrap, replace, sameWith, slice, toObject, wrap)
+     - protect (memanggil: addRequest, between, filter, getFromArray, id, includes, processRange, push, toGridRange, toObject)
      - push (memanggil: flat, values)
      - remove (memanggil: lazyWrap)
      - rename (memanggil: addRequest, values)
@@ -134,7 +134,7 @@
      - replace (memanggil: addRequest, toGridRange, values)
      - resetCache (memanggil: remove)
      - resize (memanggil: addRequest, getColumnNum, values)
-     - rowProcess (memanggil: containOneOf, filter, filterCriteria, flat, get, getA1N, push, sameWith, values)
+     - rowProcess (memanggil: containOneOf, filter, filterCriteria, flat, getFromArray, getA1N, push, sameWith, values)
      - run (memanggil: batchUpdate, delete, grant, grantAllImportrange)
      - sameWith (memanggil: flat, getOptions, value)
      - set (memanggil: values)
@@ -147,7 +147,7 @@
      - sum (memanggil: flat, isTypeOf, replace, unique)
      - syncProtectionEditors (memanggil: batchUpdate, lazyWrap, push, retry)
      - syncProtectionEditorsBetweenSheet (memanggil: batchUpdate, filter, getActiveSpreadsheet, id, includes, join, push, retry)
-     - syncRoles (memanggil: get, retry, set)
+     - syncRoles (memanggil: getFromArray, retry, set)
      - templating (memanggil: Button, isObject)
      - toA1Notation (memanggil: getColumnLetter, test)
      - toast (memanggil: getActiveSpreadsheet)
@@ -178,11 +178,11 @@
      - filter (dipanggil oleh: addEmptyValueRequest, addRequest, addValueRequest, copyPaste, delete, deleteNull, empty, filterCriteria, getAllDailySheets, getAllMonthSheets, getFolderIdFromPath, getIndexesWith, getMonthlySheet, getSheet, getValuesExcept, isFalsy, isTruthy, processRange, protect, rowProcess, setSheet, syncProtectionEditorsBetweenSheet, toggleView, unique)
      - filterCriteria (dipanggil oleh: rowProcess)
      - findRow (dipanggil oleh: getA1NByEmptyRow, sortRange)
-     - flat (dipanggil oleh: addEmptyValueRequest, addRequest, addValueRequest, containOneOf, copyPaste, dif, endWith, get, getValue, getValues, includes, isFalsy, isObject, isTruthy, isTypeOf, isUnique, lowerThan, max, notSameWith, push, rowProcess, sameWith, sum, toObject, unique)
+     - flat (dipanggil oleh: addEmptyValueRequest, addRequest, addValueRequest, containOneOf, copyPaste, dif, endWith, getFromArray, get, getValues, includes, isFalsy, isObject, isTruthy, isTypeOf, isUnique, lowerThan, max, notSameWith, push, rowProcess, sameWith, sum, toObject, unique)
      - formatDate (dipanggil oleh: formattingFunc)
-     - get (dipanggil oleh: add, addEmailsTo, batchUpdate, delete, getA1NByName, getGlobalCache, getSheet, getValue, getValues, max, processRange, protect, rowProcess, syncRoles)
-     - getA1N (dipanggil oleh: filterCriteria, findRow, getA1NByEmptyRow, getValue, getValues, rowProcess, setValue, setValues, sortRange)
-     - getActiveSpreadsheet (dipanggil oleh: batchUpdate, buildFromExistingRequests, copyPaste, create, findRow, getA1N, getA1NByEmptyRow, getA1NByName, getAllDailySheets, getAllMonthSheets, getAllSheetsByName, getColumnByHeader, getHeaders, getMonthlySheet, getSheet, getSpreadsheetTimeZone, getValue, getValues, grantAllImportrange, setValue, setValues, sortRange, syncProtectionEditorsBetweenSheet, toGridRange, toast)
+     - getFromArray (dipanggil oleh: add, addEmailsTo, batchUpdate, delete, getA1NByName, getGlobalCache, getSheet, get, getValues, max, processRange, protect, rowProcess, syncRoles)
+     - getA1N (dipanggil oleh: filterCriteria, findRow, getA1NByEmptyRow, get, getValues, rowProcess, setValue, setValues, sortRange)
+     - getActiveSpreadsheet (dipanggil oleh: batchUpdate, buildFromExistingRequests, copyPaste, create, findRow, getA1N, getA1NByEmptyRow, getA1NByName, getAllDailySheets, getAllMonthSheets, getAllSheetsByName, getColumnByHeader, getHeaders, getMonthlySheet, getSheet, getSpreadsheetTimeZone, get, getValues, grantAllImportrange, setValue, setValues, sortRange, syncProtectionEditorsBetweenSheet, toGridRange, toast)
      - getColumnByHeader (dipanggil oleh: filter, getColumnByType)
      - getColumnCountFromA1N (dipanggil oleh: setValues, values)
      - getColumnFromA1N (dipanggil oleh: getValues, value)
@@ -193,11 +193,11 @@
      - getGlobalCache (dipanggil oleh: addToGlobalCache, getFolderIdFromPath, getHeaders, getSheet, id)
      - getHeaders (dipanggil oleh: formattingFunc, getColumnByHeader, sortRange)
      - getIndexesWith (dipanggil oleh: formattingFunc)
-     - getOptions (dipanggil oleh: dif, endWith, get, lowerThan, sameWith)
+     - getOptions (dipanggil oleh: dif, endWith, getFromArray, lowerThan, sameWith)
      - getRowCountFromA1N (dipanggil oleh: getValues, setValue, setValues, value, values)
      - getRowFromA1N (dipanggil oleh: getValues, value)
      - getSheet (dipanggil oleh: copyPaste, getEventDetail, getRemoteEventDetail, setSheet, toGridRange)
-     - getValue (dipanggil oleh: getActive, getRemoteEventDetail)
+     - get (dipanggil oleh: getActive, getRemoteEventDetail)
      - getValues (dipanggil oleh: findRow, getHeaders, processRange, sortRange)
      - grant (dipanggil oleh: run)
      - grantAllImportrange (dipanggil oleh: run)
@@ -213,7 +213,7 @@
      - max (dipanggil oleh: getValues)
      - notSameWith (dipanggil oleh: delete, getAllDailySheets, id, insertAfter, insertCell, toggleView)
      - process (dipanggil oleh: endWith)
-     - processRange (dipanggil oleh: empty, filter, findRow, getValue, protect, value, values)
+     - processRange (dipanggil oleh: empty, filter, findRow, get, protect, value, values)
      - push (dipanggil oleh: add, addEmailsTo, addEmptyValueRequest, addRequest, addValueRequest, filterCriteria, getColumnByHeader, getIndexesWith, getValues, iterate, protect, rowProcess, sortRange, syncProtectionEditors, syncProtectionEditorsBetweenSheet)
      - remove (dipanggil oleh: resetCache)
      - rename (dipanggil oleh: copySheet)
@@ -236,7 +236,7 @@
      - toObject (dipanggil oleh: filter, processRange, protect)
      - unique (dipanggil oleh: copyPaste, getSheet, getValues, setSheet, sum)
      - value (dipanggil oleh: addToGlobalCache, between, capitalize, compare, containOneOf, deleteNull, endWith, formattingFunc, getActive, getAllDailySheets, getEventDetail, getGlobalCache, getIndexesWith, getLongMonth, getRemoteEventDetail, includes, isAllArray, isDate, isObject, isUnique, isYear, lazyWrap, lowerThan, notSameWith, process, repeat, sameWith, setValue, setValues, toDate, toggleView, values, wrap)
-     - values (dipanggil oleh: add, addEmptyValueRequest, addValueRequest, autoFill, color, copySheet, empty, findRow, formattingFunc, getIndexesWith, getValue, getValues, getValuesByColumn, getValuesExcept, insertAfter, insertCell, isObject, join, process, push, rename, replace, resize, rowProcess, set, setValue, setValues, sortRange, toggleView, value)
+     - values (dipanggil oleh: add, addEmptyValueRequest, addValueRequest, autoFill, color, copySheet, empty, findRow, formattingFunc, getIndexesWith, get, getValues, getValuesByColumn, getValuesExcept, insertAfter, insertCell, isObject, join, process, push, rename, replace, resize, rowProcess, set, setValue, setValues, sortRange, toggleView, value)
      - wrap (dipanggil oleh: getValues, lazyWrap, processRange, setSheet, setValue, value)
 
   4. Fungsi yang Saling Memanggil
@@ -272,11 +272,11 @@
      - getRowFromA1N: Mengekstrak angka baris pertama dari syntax string notasi A1.
      - getRowCountFromA1N: Mengkalkulasi selisih interval total baris secara matematis dari representasi A1 Notation.
      - getA1NByEmptyRow: Mencari baris selang seling yang pertama kosong untuk membangun A1 notation titik append entri baru.
-     - get: Membaca serta mem-parse data konfigurasi atau nilai local list dari AppsScript PropertiesService.
+     - getFromArray: Membaca serta mem-parse data konfigurasi atau nilai local list dari AppsScript PropertiesService.
      - set: Meng-assign dan menetapkan properti baru bentuk JSON raw string payload di PropertiesService.
      - add: Menggabungkan set nilai ke list konfigurasi PropertiesService array tanpa menghapus yang lama.
      - remove: Menghapus instance key tersimpan dari list properti sistem PropertiesService AppsScript.
-     - getValue: Mengekstrak native direct string cell referensi utilitas eksekusi real time read fetch value.
+     - get: Mengekstrak native direct string cell referensi utilitas eksekusi real time read fetch value.
      - getValues: Mengekstrak array multi dimensional read fetching data pada current sheet instance tanpa antrian builder request.
      - setValue: Shorthand API entry tunggal primitive/seragam rentang bulk ke lembaran spreadsheet sheet.
      - setValues: Fungsi utama push tulis arrays 2D massal ke spreadsheet melalui request format Batch Update API local.
@@ -351,7 +351,7 @@
      - push: Mendorong masuk penyatuan array multi level variatif dimension input var list spread arg masuk list data elemen map pada object property host parameter mutable array master host obj target mem pointer list primitive push spread parameter target loop data host append loop array obj masuk params masuk target native params arguments.
      - flat: Meratakan pemadatan kedalaman dimensi n-kali tak hingga nested array matrix list layer dalam memory object memory menjadi JS satu susunan pipih map data loop satu lapis base datar list native matrix elemen object loop values dimensi index perataan var param array spread base native layer level layer map parameter arrays object JS JS map JS JS JS.
      - toParam: Matriks pivot rotator 2D table map baris x, y transpos perputaran baris vertikal menjadi urutan index list per-baris row-colum format column arrays index JS obj arrays arrays base JS array matrix column row JS obj arrays arrays arrays JS matrix.
-     - extract: Mencabut blok urutan dimensi ke-n vertikal kolom matrix 2D map table row array-dalam berbasis 0-index tanpa header list per row cell get JS JS obj index base array map per row index col per map cell matrix JS loop JS map loop per row cell loop array.
+     - extract: Mencabut blok urutan dimensi ke-n vertikal kolom matrix 2D map table row array-dalam berbasis 0-index tanpa header list per row cell getFromArray JS JS obj index base array map per row index col per map cell matrix JS loop JS map loop per row cell loop array.
      - containOneOf: Toleransi bool filter check ketersediaan nilai substring karakter pada string base maupun elemen exact match dalam pool parameter pencocokan argumen target list.
      - isUnique: Bool validator verifikasi Set homogen size dimensi apakah seluruh args elemen referensi masukan set parameter object parameter kumpulan adalah entitas var nilai yang sama eksak seragam 1 dimensi varian type data unik seragam eksak var.
      - sameWith: Kalkulator deep equalizer pembanding komprehensif validasi struktur key prop property dalam plain JS Object primitive maupun nilai absolut parameter target and logic and or or or parameter boolean target parameter perbandingan object property deep property array.

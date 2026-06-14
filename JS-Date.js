@@ -12,7 +12,7 @@ var longMonths = Object.freeze([
 ])
 
 /**
- * @param {Object} options
+ * @param {{input?: string|Date, format: string}} options
  */
 function formatDate(options = {}) {
   const { input = null, format } = options
@@ -25,6 +25,18 @@ function formatDate(options = {}) {
     'Asia/Jakarta',
     format
   )
+}
+/**
+ * @return {Object}
+ */
+function getCurrentDate() {
+  const today = new Date()
+  return {
+    day: today.getDay(),
+    date: today.getDate(),
+    month: today.getMonth(),
+    year: today.getFullYear()
+  }
 }
 
 /**
