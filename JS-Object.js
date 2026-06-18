@@ -40,11 +40,11 @@ class MLObject {
   }
 
   /**
-   * @return {[string, T][]}
+   * @return {MLArray<[string, T]>}
    */
   entries() {
     if (!this.entriesVersion)
-      this.entriesVersion = Object.entries(this.object)
+      this.entriesVersion = MLArray.init(Object.entries(this.object))
     return this.entriesVersion
   }
 

@@ -43,12 +43,16 @@ class MLArray extends Array {
     return this.map(callbackFn).toObject()
   }
 
+  castToString() {
+    return this.map(data => typeof data !== 'string' ? data.toString() : data)
+  }
+
   /**
    * @param {function(T, number): any} callbackFunc
    * @return {*[]}
    */
   mapCast(callbackFunc) {
-    return super.map((data, no) => callbackFunc(isArray(data) ? this.constructor.init(data) : data, no))
+    return this.map((data, no) => callbackFunc(isArray(data) ? this.constructor.init(data) : data, no))
   }
 
   /**
@@ -99,9 +103,17 @@ class MLArray extends Array {
     iterate(i => {
       if (predicate(this[i], i, this))
         this[writeIndex++] = this[i]
-    }, { until: this.length })
+    }, { from: 0, until: this.length, untilBefore: true })
     this.length = writeIndex
     return this
+  }
+
+  /**
+   * @param {function(T, number, MLArray<T>): boolean} predicate
+   * @return {MLArray<T>}
+   */
+  immutableFilter(predicate) {
+    return super.filter(predicate)
   }
 
   /**
@@ -120,7 +132,7 @@ class MLArray extends Array {
     if (this.some(isArray)) {
       const flattened = this.flat(Infinity)
       this.length = 0
-      iterate(i => this[i] = flattened[i], { until: flattened.length })
+      iterate(i => this[i] = flattened[i], { from: 0, until: flattened.length, untilBefore: true })
     }
     return this
   }
@@ -224,9 +236,9 @@ class MLArray extends Array {
    */
   unique() {
     this.lazyFlat().deleteNull()
-    const uniqueCollection = (new Set(this)).values()
+    const uniqueCollection = [...new Set(this)]
     this.length = 0
-    iterate(i => this[i] = uniqueCollection[i], { until: uniqueCollection.length })
+    iterate(i => this[i] = uniqueCollection[i], { from: 0, until: uniqueCollection.length, untilBefore: true })
     return this
   }
 
@@ -283,7 +295,7 @@ class MLArray extends Array {
   }
 }
 
-Array.prototype.asMLArray = function() {
+Array.prototype.asMLArray = function () {
   return MLArray.init(this)
 }
 

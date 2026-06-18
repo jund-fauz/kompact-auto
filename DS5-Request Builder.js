@@ -109,7 +109,7 @@ class SpreadsheetManipulation {
         this.sheet = cache.keys()
         break
       default:
-        this.sheet = MLArray.init(sheet).map(sheet => typeof sheet === 'number' ? sheet.toString() : sheet).unique()
+        this.sheet = MLArray.init(sheet).castToString().unique()
     }
 
     cache.keys().forEach(key => {
@@ -118,7 +118,7 @@ class SpreadsheetManipulation {
     })
 
     if (cache.keys().length !== this.sheet.length)
-      throw Error(`Sheet ${this.sheet.filter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada.`)
+      throw Error(`Sheet ${this.sheet.immutableFilter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada.`)
 
     if (except) {
       except = MLArray.init(except)
@@ -477,8 +477,8 @@ class SpreadsheetManipulation {
           firstRow = currentRow
       }
       if (filterViewName) {
-        /** @type {{visibleBackgroundColor: GoogleAppsScript.Sheets.Schema.Color}} */
-        const specsMap = {}
+        /** @type {MLObject<visibleBackgroundColor: GoogleAppsScript.Sheets.Schema.Color>} */
+        const specsMap = initObject({})
         // noinspection JSUnresolvedReference
         const metadatas = {},
           /** @type {{[key: string]: any}} */
@@ -491,7 +491,7 @@ class SpreadsheetManipulation {
             Logger.log(`Hidden Values: ${JSON.stringify(spec.filterCriteria.hiddenValues)}\nVisible Background Color: ${spec.filterCriteria.visibleBackgroundColor}`)
         })
         if (filterSpecs.some(filter => filter.filterCriteria?.visibleBackgroundColor)) {
-          const columnWithBgColor = Object.keys(specsMap).filter(key => specsMap[key].visibleBackgroundColor),
+          const columnWithBgColor = specsMap.keys().immutableFilter(key => specsMap[key].visibleBackgroundColor),
             bgColorData = this.get({
               ranges: columnWithBgColor.map(key => [rangeRows[0], Number(key) + 1, { endRow: rangeRows[1] }]),
               fields: 'sheets(data(rowData(values(effectiveFormat(backgroundColor)))))',
@@ -501,7 +501,7 @@ class SpreadsheetManipulation {
             metadatas[columnIndex] = bgColorData[realIndex]?.rowData || []
           })
         }
-        values = values.filter((rowData, row) => {
+        values.filter((rowData, row) => {
           let isHidden = false
           for (const columnIndex in specsMap) {
             const realIndex = columnIndex - column[0] + 1,
@@ -528,7 +528,7 @@ class SpreadsheetManipulation {
           rowMetadata = isRangesAnArray && isAll && stack === Vertical
             ? sheetsData.map(data => data.rowMetadata || []).flat(1)
             : sheetsData[0].rowMetadata || []
-          values = values.filter((_, index) => {
+          values.filter((_, index) => {
             const isNotHidden = !rowMetadata?.[index]?.hiddenByFilter
             if (withRows)
               rowProcess(!isNotHidden, index)
@@ -817,11 +817,11 @@ class SpreadsheetManipulation {
       Logger.log('WARNING! Sintaks redundan. Pilih antara \'include\' ataupun \'except\'')
     if (include) {
       include = lazyWrap(include)
-      sheet = sheet.filter(sheet => include.includes(sheet))
+      sheet.filter(sheet => include.includes(sheet))
     }
     if (except) {
       except = lazyWrap(except)
-      sheet = sheet.filter(sheet => !except.includes(sheet))
+      sheet.filter(sheet => !except.includes(sheet))
     }
 
     switch (type) {
@@ -883,7 +883,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   copyPaste(sourceSheet, range, pasteType, options = {}) {
-    let { targetSheet = this.sheet.filter(name => name !== sourceSheet), targetRange = null } = options
+    let { targetSheet = this.sheet.immutableFilter(name => name !== sourceSheet), targetRange = null } = options
     targetSheet = lazyWrap(targetSheet)
     if (typeof sourceSheet === 'number')
       sourceSheet = sourceSheet.toString()
@@ -948,7 +948,7 @@ class SpreadsheetManipulation {
           fields: 'hidden'
         }
       })
-      return this.addRequests(Object.entries(this.sheetId).filter(([key, _]) => !except.includes(key)).map(([_, value]) => add(value)))
+      return this.addRequests(this.sheetId.entries().immutableFilter(([key, _]) => !except.includes(key)).map(([_, value]) => add(value)))
     } else {
       columnOrRow--
       add = id => ({
@@ -1590,7 +1590,7 @@ class SpreadsheetManipulation {
     if (except) {
       if (typeof except === 'string')
         except = except.split(', ')
-      sheet = sheet.filter(sheet => !except.includes(sheet))
+      sheet.filter(sheet => !except.includes(sheet))
     }
     ranges = lazyWrap(ranges)
 
