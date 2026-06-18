@@ -1625,10 +1625,10 @@ class SpreadsheetManipulation {
 
     let headers, lastRows, lastColumns
     if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
-      const cacheKey = `${this.spreadsheetId}_${sheet}_mix_${ranges[0].at(-1).headerRow ?? 1}`,
+      const cacheKey = `${this.spreadsheetId}_${sheet}_mix_${this.headerRow[sheet[0]] ?? ranges[0].at(-1).headerRow ?? 1}`,
         cache = getGlobalCache()
       if (!cache.headers[cacheKey]) {
-        const row = ranges[0].at(-1)?.headerRow ?? 1
+        const row = this.headerRow[sheet[0]] ?? ranges[0].at(-1)?.headerRow ?? 1
         addToGlobalCache(
           CacheType.Header,
           cacheKey,
