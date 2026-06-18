@@ -1,7 +1,7 @@
 /**
  * @template T
  * @param {() => void|T} func
- * @param {Object} options
+ * @param {{from?: number, until?: number, untilBefore?: boolean, addition?: number, withReturnValue?: boolean}} options
  * @return {void|T[]}
  */
 function iterate(func, options = {}) {

@@ -3,13 +3,28 @@
  *  @template T
  */
 class MLObject {
+  static fromEntries(entries) {
+    return new this(Object.fromEntries(entries))
+  }
+
+  /**
+   * @param {MLArray<T>} values
+   * @return {MLObject<T>}
+   */
+  static assign(values) {
+    const result = {}
+    iterate(i => Object.assign(result, values[i]), { until: values.length })
+    return new this(result)
+  }
+
   /**
    * @param {Object<string, T>} object
    */
   constructor(object) {
     this.object = object
     this.entriesVersion = null
-    this.valuesVersion = null
+    this.valuesVersion = []
+    this.keysVersion = []
     this.forEach((key, value) => {
       if (!(key in this))
         this[key] = value
@@ -67,25 +82,43 @@ class MLObject {
   /**
    * Mendapatkan nilai berdasarkan key (bisa banyak) dari suatu object
    * @param {string|{isDeleteNull: boolean}} keys
-   * @return {T|T[]}
+   * @return {T|MLArray<T>}
    */
   getValue(...keys) {
-    const { isDeleteNull = false } = getOptions(keys)
-    keys = flat(keys)
-    const process = key => this.object[key],
+    const { isDeleteNull = false } = getOptions(keys),
+      mLArrayKeys = MLArray.init(keys, { flatting: true })
+    /**
+     * @param {string} key
+     * @return {*}
+     */
+    const process = key => this[key],
       processArrayValue = value => isArray(value) && value.length === 1 ? value[0] : value
     if (isAllArray(this.values()))
-      return Object.values(this.object).map(processArrayValue)
-    return keys.length > 1
-      ? isDeleteNull
-        ? deleteNull(keys.map(process))
-        : keys.map(process)
-      : process(keys[0])
+      return this.values().map(processArrayValue)
+    if (mLArrayKeys.length > 1) {
+      const result = mLArrayKeys.map(process)
+      return isDeleteNull
+        ? result.deleteNull()
+        : result
+    }
+    return process(mLArrayKeys[0])
   }
 
+  /**
+   * @return {MLArray<string>}
+   */
+  keys() {
+    if (!this.keysVersion.length)
+      this.keysVersion = MLArray.init(Object.keys(this.object))
+    return this.keysVersion
+  }
+
+  /**
+   * @return {MLArray<T>}
+   */
   values() {
-    if (!this.valuesVersion)
-      this.valuesVersion = Object.values(this.object)
+    if (!this.valuesVersion.length)
+      this.valuesVersion = MLArray.init(Object.values(this.object))
     return this.valuesVersion
   }
 
@@ -98,13 +131,25 @@ class MLObject {
     const result = this.filter((key, value) => values.includes(value)).map(key => key)
     return result.length > 1 ? result : result[0]
   }
+
+  delete(key) {
+    delete this.object[key]
+    delete this[key]
+    this.entriesVersion = null
+    this.keysVersion = []
+    this.valuesVersion = []
+  }
+}
+
+Object.prototype.asMLObject = () => {
+  return initObject(this)
 }
 
 /**
  * @param {Object} object
  * @return {MLObject}
  */
-function initializeObject(object) {
+function initObject(object) {
   return new MLObject(object)
 }
 

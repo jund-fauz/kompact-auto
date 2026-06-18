@@ -29,13 +29,8 @@ var ui = () => SpreadsheetApp.getUi(),
   Active = 'ACTIVE',
   All = 'ALL',
 
-  /**
-   * @enum {string}
-   */
-  OrderBy = Object.freeze({
-    a: 'asc',
-    d: 'desc'
-  }),
+  Ascending = 'ASC',
+  Descending = 'DESC',
 
   Horizontal = 'horizontal',
   Vertical = 'vertical',

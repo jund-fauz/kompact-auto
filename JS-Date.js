@@ -1,12 +1,12 @@
 // Manipulasi untuk spreadsheet tahunan
-/** @type {string[]} */
-var shortMonths = Object.freeze([
+/** @type {MLArray<string>} */
+var shortMonths = MLArray.init([
   'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
   'JUL', 'AGS', 'SEP', 'OKT', 'NOV', 'DES'
 ])
 
-/** @type {string[]} */
-var longMonths = Object.freeze([
+/** @type {MLArray<string>} */
+var longMonths = MLArray.init([
   'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
   'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
 ])

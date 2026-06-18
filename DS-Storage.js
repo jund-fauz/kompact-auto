@@ -1,4 +1,3 @@
-
 /** Manipulasi Storage App Script */
 class Storage {
   /** @param {PropertiesService.Properties} storage */
@@ -8,15 +7,15 @@ class Storage {
 
   /**
    * @param {string|string[]} keys
-   * @return {Object|Object[]}
+   * @return {MLObject}
    */
   get(...keys) {
-    keys = flat(keys)
-    const process = key => toObject(this.storage.getProperty(key) ?? 'null')
-    if (keys.length === 1)
-      return process(keys)
+    const keysMLArray = MLArray.init(keys, { flatting: true }),
+      process = key => toObject(this.storage.getProperty(key) ?? 'null')
+    if (keysMLArray.length === 1)
+      return process(keysMLArray[0]).asMLObject()
     else
-      return Object.assign({}, ...keys.map(key => ({ [key]: process(key) })))
+      return keysMLArray.mapToObject(key => ({ [key]: process(key) }))
   }
 
   /**
@@ -51,7 +50,7 @@ class Storage {
     let currentDatas = this.get(keys)
     keys.forEach((key, no) => {
       if (isArray(currentDatas[key]))
-        push(currentDatas[key], values[no])
+        currentDatas[key].push(...values[no])
       else if (isObject(currentDatas[key]))
         currentDatas[key] = { ...currentDatas[key], ...values[no] }
       else
@@ -82,6 +81,6 @@ class Storage {
  * @param {GoogleAppsScript.Properties.Properties} storage
  * @return {Storage}
  */
-function initializeStorage(storage) {
+function initStorage(storage) {
   return new Storage(storage)
 }

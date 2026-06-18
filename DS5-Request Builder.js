@@ -13,7 +13,7 @@
  *  @typedef {PasteNormal|PasteFormula|PasteFormat|string} PasteType
  *  @typedef {Formatted|Unformatted|Formula|string} ValueRenderOption
  *  @typedef {Horizontal|Vertical|string} Stack
- *  @typedef {string|number} SheetType
+ *  @typedef {string|number|MLArray<string|number>} SheetType
  *  @typedef {{
  *  isAll?: boolean,
  *  notFiltered?: boolean,
@@ -31,7 +31,7 @@
 class SpreadsheetManipulation {
   /**
    * @param {string|null} spreadsheetIdOrTitle
-   * @param {SheetType|SheetType[]|null} sheet
+   * @param {SheetType|null} sheet
    * @param {Object} options
    */
   constructor(spreadsheetIdOrTitle = null, sheet = null, options = {}) {
@@ -46,9 +46,9 @@ class SpreadsheetManipulation {
       withLog = true
     } = options
     /** @type {Object[]} */
-    this.requests = requests ?? []
-    this.valueRequests = valueRequests ?? []
-    this.emptyValueRequests = []
+    this.requests = MLArray.init(requests ?? [])
+    this.valueRequests = MLArray.init(valueRequests ?? [])
+    this.emptyValueRequests = MLArray.init([])
     this.customRequests = customRequests ?? {}
     this.responses = []
     this.spreadsheet = spreadsheetIdOrTitle ?? SpreadsheetApp.getActiveSpreadsheet().getId()
@@ -74,8 +74,8 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * @param {SheetType|SheetType[]} sheet
-   * @param {SheetType|SheetType[]} except
+   * @param {SheetType} sheet
+   * @param {SheetType} except
    * @return {SpreadsheetManipulation}
    */
   selectSheet(sheet, except = null) {
@@ -88,42 +88,41 @@ class SpreadsheetManipulation {
         result = {}
       sp.forEach(sheet => result[sheet.properties.title] = sheet.properties.sheetId)
       addToGlobalCache(CacheType.SheetIds, this.spreadsheetId, result)
-      cache = { ...result }
+      cache = initObject(result)
     } else
-      cache = { ...cache }
+      cache = initObject(cache)
 
     switch (sheet) {
       case Daily:
-        /** @type {string[]} */
-        this.sheet = iterate(i => i.toString(), { until: 31 })
+        /** @type {MLArray<string>} */
+        this.sheet = MLArray.init(iterate(i => i.toString(), { until: 31 }))
         break
       case Monthly:
-        this.sheet = [...shortMonths]
+        this.sheet = MLArray.init(shortMonths)
         break
       case Active:
-        this.sheet = wrap(this.selectedSheet().getName())
-        this.sheetId = { [this.sheet[0]]: this.selectedSheet().getSheetId() }
+        this.sheet = MLArray.init(this.selectedSheet().getName())
+        this.sheetId = initObject({ [this.sheet[0]]: this.selectedSheet().getSheetId() })
         return this
       case All:
-        this.sheet = Object.keys(cache)
+        this.sheet = cache.keys()
         break
       default:
-        this.sheet = unique(lazyWrap(sheet).map(sheet => typeof sheet === 'number' ? sheet.toString() : sheet))
+        this.sheet = MLArray.init(sheet).map(sheet => typeof sheet === 'number' ? sheet.toString() : sheet).unique()
     }
 
-    Object.keys(cache).forEach(key => {
+    cache.keys().forEach(key => {
       if (!this.sheet.includes(key))
-        delete cache[key]
+        cache.delete(key)
     })
 
-    const keys = Object.keys(cache)
-    if (keys.length !== this.sheet.length)
-      throw Error(`Sheet ${join(this.sheet.filter(sheet => !keys.includes(sheet)))} tidak ada.`)
+    if (cache.keys().length !== this.sheet.length)
+      throw Error(`Sheet ${this.sheet.filter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada.`)
 
     if (except) {
-      except = lazyWrap(except)
-      this.sheet = this.sheet.filter(sheet => !except.includes(sheet))
-      except.forEach(name => delete cache[name])
+      except = MLArray.init(except)
+      this.sheet.filter(sheet => !except.includes(sheet))
+      except.forEach(name => cache.delete(name))
     }
 
     this.sheetId = cache
@@ -205,7 +204,7 @@ class SpreadsheetManipulation {
     const headers = [...cache.headers[cacheKey]]
     const unshiftArr = Array.from({ length: unshiftCounts }, () => '')
     headers.unshift(...unshiftArr)
-    return headers
+    return MLArray.init(headers)
   }
 
   /**
@@ -213,6 +212,7 @@ class SpreadsheetManipulation {
    * @param {{
    *    headerRow?: number,
    *    isLastHeader?: boolean,
+   *    lastHeaders?: string|string[],
    *    isLetter?: boolean,
    *    unshiftCounts?: number,
    *    withHeader?: boolean,
@@ -232,30 +232,33 @@ class SpreadsheetManipulation {
         sheet = this.sheet[0]
       } = options,
       headers = this.headers({ headerRow, sheet, unshiftCounts }),
-      cols = [],
-      isCNArray = isArray(columnName),
-      length = isCNArray ? columnName.length : 1
-    let result = {}, i = 0, name = isCNArray ? columnName[i] : columnName
-    do {
-      const colNum = isLastHeader ? headers.lastIndexOf(name) : headers.indexOf(name)
-      if (colNum < 1) throw Error(`Kolom dengan judul ${name} tidak ada pada sheet ${sheet}. Spreadsheet: ${this.spreadsheetId}`)
+      cols = []
+    columnName = lazyWrap(columnName)
+    let { lastHeaders = null } = options,
+      result = {}
+    const process = (column, isLastHeader) => {
+      const colNum = isLastHeader ? headers.lastIndexOf(column) : headers.indexOf(column)
+      if (colNum < 1) throw Error(`Kolom dengan judul ${column} tidak ada pada sheet ${sheet}. Spreadsheet: ${this.spreadsheetId}`)
       const col = isLetter ? getColumnLetter(colNum) : colNum
       if (withHeader) {
-        name = name.toLowerCase()
+        column = column.toLowerCase()
         if (prefix)
-          name = prefix + ' ' + name
-        result[toCamelCase(name)] = col
+          column = prefix + ' ' + column
+        result[toCamelCase(column)] = col
       } else
         cols.push(col)
-      i++
-      name = columnName?.[i]
-    } while (i < length)
+    }
+    columnName.forEach((column) => process(column, isLastHeader))
+    if (lastHeaders) {
+      lastHeaders = lazyWrap(lastHeaders)
+      lastHeaders.forEach((column) => process(column, true))
+    }
     if (!withHeader)
-      result = isCNArray ? cols : cols[0]
+      result = cols.length > 2 ? cols : cols[0]
     else
-      result = initializeObject(result)
+      result = initObject(result)
     if (this.withLog)
-      Logger.log(`\nHeader: ${headers}\nCols: ${cols}\nResult: ${isObject(result) ? Object.entries(result) : result}`)
+      Logger.log(`\nHeader: ${headers}\nCols: ${cols}\nResult: ${result instanceof MLObject ? result.entries() : result}`)
     return result
   }
 
@@ -290,7 +293,7 @@ class SpreadsheetManipulation {
   /**
    * @param {RawRange|RawRange[]} ranges
    * @param {{vro: ValueRenderOption, sheet: string}|Object} options
-   * @return {SpreadsheetManipulation|undefined|any}
+   * @return {undefined|any}
    */
   value(ranges, options = {}) {
     const { vro = Formatted, sheet = this.sheet[0], ...optionsForAPI } = options
@@ -307,7 +310,7 @@ class SpreadsheetManipulation {
    * @template T
    * @param {RawRange|RawRange[]} ranges
    * @param {ValuesOption} options
-   * @return {T[]|T[][]|MLObject|{[key: string]: T}}
+   * @return {MLArray<T>|MLArray<T[]>|MLObject|{[key: string]: MLArray<T>}}
    */
   values(ranges, options = {}) {
     ranges = lazyWrap(ranges)
@@ -352,7 +355,7 @@ class SpreadsheetManipulation {
       column = editRange(sampleRange, { withLog: this.withLog }).column({ withLastColumn: true })
     if (this.withLog)
       Logger.log(ranges)
-    let values = isRangesAnArray
+    let values = (isRangesAnArray
       ? spreadsheet.Values.batchGet(this.spreadsheetId, {
         ranges, ...optionsForAPI,
         valueRenderOption: vro
@@ -385,7 +388,7 @@ class SpreadsheetManipulation {
           }
         }
         return dataProcess(result, rowCount)
-      })()
+      })()).asMLArray()
     if (this.withLog)
       Logger.log('Options: ' + JSON.stringify(options))
     let combinedHeaders = [], widths
@@ -396,10 +399,10 @@ class SpreadsheetManipulation {
       combinedHeaders = isRangesAnArray && stack === Horizontal
         ? ranges.flatMap((range, no) => {
           const startCol = editRange(range, { withLog: this.withLog }).column() || 1,
-            sliced = slice(headers, startCol, startCol + widths[no] - 1)
+            sliced = headers.slice(startCol, startCol + widths[no] - 1)
           return Array.from({ length: widths[no] }, (_, i) => sliced[i] || '')
         })
-        : slice(headers, ...column)
+        : headers.slice(...column)
     }
     if (values.length)
       if (isAll && isRangesAnArray)
@@ -408,7 +411,7 @@ class SpreadsheetManipulation {
         else if (fillEmpty) {
           const length = max(values.map(data => data ? data.length : 0)),
             totalWidth = sum(widths),
-            newValues = new Array(length)
+            newValues = new MLArray(length)
           for (let r = 0; r < length; r++) {
             const newRow = new Array(totalWidth)
             let colOffset = 0
@@ -426,7 +429,7 @@ class SpreadsheetManipulation {
           }
           values = newValues
         } else
-          values = Array.from({ length: max(values.map(block => block.length)) }, (_, row) => values.map(block => (block[row] || [])).flat())
+          values = MLArray.from({ length: max(values.map(block => block.length)) }, (_, row) => values.map(block => (block[row] || [])).lazyFlat())
       else if (!isAll || !isRangesAnArray) {
         if (isRangesAnArray) values = values.flat(1)
         if (fillEmpty)
@@ -519,7 +522,7 @@ class SpreadsheetManipulation {
       let currentValues = values?.rows ? values.values : values
       const formattingFunc = cell => isDate(cell) ? formatDate({ input: cell, format: dateFormat }) : cell,
         /** Untuk memangkas looping, baris 1 digunakan sebagai sample */
-        dateColumns = isAll && getIndexesWith((value) => isDate(value), currentValues[0])
+        dateColumns = isAll && currentValues[0].search(value => isDate(value))
 
       for (let r = 0; r < currentValues.length; r++)
         if (isAll)
@@ -539,7 +542,7 @@ class SpreadsheetManipulation {
       if (values?.rows)
         values.values = tempValues
       else
-        values = initializeObject(tempValues)
+        values = initObject(tempValues)
     }
     return !values ? [] : trim(values)
   }
@@ -577,11 +580,16 @@ class SpreadsheetManipulation {
    * @param {string} startColumnOrColumn
    * @param {string|string[]} searchValues
    * @param {Column|Row|string} type
-   * @param {{headerRow?: number, isLastHeader?: boolean, defaultValue?: number, sheet?: SheetType|SheetType[]}} options
+   * @param {{headerRow?: number, isLastHeader?: boolean, defaultValue?: number, sheet?: SheetType}} options
    * @return {number}
    */
   search(startRowOrRow, startColumnOrColumn, searchValues, type, options = {}) {
-    const { sheet = this.sheet[0], headerRow = this.headerRow[sheet] ?? 1, isLastHeader = false, defaultValue = 0 } = options,
+    const {
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1,
+        isLastHeader = false,
+        defaultValue = 0
+      } = options,
       /** @type {RangeOptions} */
       optionsForRange = {
         headerRow,
@@ -1047,12 +1055,12 @@ class SpreadsheetManipulation {
       rangeOptions.isLastHeader = isLastHeader
     }
     ranges = this.processRange(ranges)
-    column = toObject(this.sheet.map(sheet => ({
+    const columnObject = this.sheet.mapToObject(sheet => ({
       [this.sheetId[sheet]]: typeof column === 'string' ? this.column(column, {
         ...rangeOptions,
         sheet
       }) : column
-    })))
+    }))
     Logger.log(`Filter\nRange: ${JSON.stringify(ranges)}`)
     const { resetFilter = true } = options,
       gridRanges = ranges.map(range => this.toGridRange(...range.split('!')))
@@ -1072,7 +1080,7 @@ class SpreadsheetManipulation {
           filter: {
             range: gridRange,
             criteria: {
-              [column[gridRange.sheetId] - 1]: {
+              [columnObject[gridRange.sheetId] - 1]: {
                 condition: {
                   type: condition
                 }
@@ -1100,7 +1108,7 @@ class SpreadsheetManipulation {
       editors = null, deleteOldProtection = true
     } = options
     const addConfig = [],
-      deleteConfig = []
+      deleteConfig = MLArray.init([])
     /** @type {GoogleAppsScript.Sheets.Schema.Sheet[]} */
     let sheets,
       { range = null, unprotectedRange = null } = options
@@ -1145,7 +1153,7 @@ class SpreadsheetManipulation {
                 : Object.keys(prot.range).every(key => key === 'sheetId')
             )
           if (targetProt.length)
-            push(deleteConfig, targetProt.map(prot => prot.protectedRangeId))
+            deleteConfig.push(targetProt.map(prot => prot.protectedRangeId))
         }
       }
       const toInput = {
@@ -1381,7 +1389,7 @@ class SpreadsheetManipulation {
       this.responses.push(...(batchUpdate({
         requests: toExecuteRequests,
         spreadsheetId: this.spreadsheetId,
-        withoutRetry: Object.keys(toExecuteRequests).some(request => request.toLowerCase().includes('protect'))
+        withoutRetry: toString(toExecuteRequests).toLowerCase().includes('protect')
       })?.replies || []))
       if (this.afterRun)
         this.afterRun(this.requests.length, ...params)
@@ -1394,7 +1402,7 @@ class SpreadsheetManipulation {
   addRequests(...array) {
     array = flat(array)
     if (array.length)
-      push(this.requests, array)
+      this.requests.push(array)
     return this
   }
 
@@ -1403,7 +1411,8 @@ class SpreadsheetManipulation {
    */
   addValueRequests(...array) {
     array = flat(array)
-    push(this.valueRequests, array)
+    if (array.length)
+      this.valueRequests.push(array)
     return this
   }
 
@@ -1412,29 +1421,31 @@ class SpreadsheetManipulation {
    */
   addEmptyValueRequests(...array) {
     array = flat(array)
-    this.emptyValueRequests.push(...array)
+    if (array.length)
+      this.emptyValueRequests.push(array)
     return this
   }
 
-  deleteInvalidRequest(requests) {
+  deleteInvalidRequest() {
     if (this.requests.length)
-      this.requests = this.requests.filter(req => isObject(req) && Object.keys(req).length)
+      this.requests.filter(req => isObject(req) && Object.keys(req).length)
     if (this.valueRequests.length)
-      this.valueRequests = this.valueRequests.filter(req => isObject(req) && Object.keys(req).length)
+      this.valueRequests.filter(req => isObject(req) && Object.keys(req).length)
     if (this.emptyValueRequests.length)
-      this.emptyValueRequests = this.emptyValueRequests.filter(req => typeof req === 'string')
+      this.emptyValueRequests.filter(req => typeof req === 'string')
   }
 
   /**
    * @param {RawRange|RawRange[]} ranges
-   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType|SheetType[], withoutSheet?: boolean}} options
+   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
    * @return {string[]}
    */
   processRange(ranges, options = {}) {
     let { except = null, includeInvalid = false, sheet = this.sheet, withoutSheet = false } = options
     if (typeof sheet === 'string')
       sheet = sheet.split(', ')
-    sheet = lazyWrap(sheet)
+    if (!(sheet instanceof MLArray))
+      sheet = MLArray.init(sheet)
     if (typeof sheet === 'number' || (isArray(sheet) && isTypeOf('number', sheet)))
       sheet = sheet.map(sheet => sheet.toString())
     if (except) {
