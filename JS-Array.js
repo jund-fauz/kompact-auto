@@ -301,6 +301,16 @@ Array.prototype.asMLArray = function () {
 
 /**
  * @template T
+ * @param {T|Array<T|Object<string, T>>|Set<T>} array
+ * @param {MLArrayOptions} options
+ * @return {MLArray<T>}
+ */
+function initArray(array, options = {}) {
+  return MLArray.init(array, options)
+}
+
+/**
+ * @template T
  * @param {T} valueOrFunction
  * @param {number} count
  * @return {T[]}
