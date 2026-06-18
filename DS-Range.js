@@ -87,16 +87,18 @@ class DSRange {
       throw Error('Anda lupa mencantumkan sheet id')
     const cols = this.column({ withLastColumn: true }),
       rows = this.row({ withLastRow: true }),
-      startRowIndex = rows[0] ? (parseInt(rows[0], 10) - 1) : undefined,
       /** @type {GridRange} */
-      gridRange = {
-        sheetId,
-        startColumnIndex: getColumnIndex(cols[0]),
-        endColumnIndex: getColumnNum(cols[1] ?? cols[1]),
-        startRowIndex
-      }
+      gridRange = { sheetId }
+    if (cols[0]) {
+      gridRange.startColumnIndex = cols[0] - 1
+      gridRange.endColumnIndex = cols[0]
+    }
+    if (rows[0])
+      gridRange.startRowIndex = rows[0] - 1
+    if (cols[1])
+      gridRange.endColumnIndex = cols[1]
     if (rows[1] || (rows[0] && !cols[1]))
-      gridRange.endRowIndex = rows[1] ? parseInt(rows[1]) : startRowIndex
+      gridRange.endRowIndex = rows[1] ?? rows[0]
     return gridRange
   }
 }

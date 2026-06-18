@@ -89,9 +89,9 @@ class SpreadsheetManipulation {
         result = {}
       sp.forEach(sheet => result[sheet.properties.title] = sheet.properties.sheetId)
       addToGlobalCache(CacheType.SheetIds, this.spreadsheetId, result)
-      cache = initObject(result)
+      cache = initObject({ ...result })
     } else
-      cache = initObject(cache)
+      cache = initObject({ ...cache })
 
     switch (sheet) {
       case Daily:
@@ -116,6 +116,9 @@ class SpreadsheetManipulation {
       if (!this.sheet.includes(key))
         cache.delete(key)
     })
+
+    if (this.withLog)
+      Logger.log(cache.keys())
 
     if (cache.keys().length !== this.sheet.length)
       throw Error(`Sheet ${this.sheet.immutableFilter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada.`)
@@ -279,25 +282,25 @@ class SpreadsheetManipulation {
   /**
    * Mengambil jumlah maksimum baris atau kolom dari grid properties sheet dengan caching.
    * @param {Column|Row|string} type
-   * @param {{isLetter?: boolean}} options
+   * @param {{isLetter?: boolean, sheet?: SheetType}} options
    * @return {number|string}
    */
   max(type, options = {}) {
-    const { isLetter = false } = options,
-      key = `max_${this.sheet[0]}_${type}`
+    const { isLetter = false, sheet = this.sheet[0]} = options,
+      key = `max_${sheet}_${type}`
     switch (type) {
       case Column:
         if (!this.cache[key])
           this.cache[key] = this.get({
             fields: 'sheets.properties.gridProperties.columnCount',
-            sheet: this.sheet[0]
+            sheet: sheet
           }).sheets[0].properties.gridProperties.columnCount
         return isLetter ? getColumnLetter(this.cache[key]) : this.cache[key]
       case Row:
         if (!this.cache[key])
           this.cache[key] = this.get({
             fields: 'sheets.properties.gridProperties.rowCount',
-            sheet: this.sheet[0]
+            sheet: sheet
           }).sheets[0].properties.gridProperties.rowCount
         return this.cache[key]
     }
@@ -578,7 +581,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   duplicateSheet(newName) {
-    spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, Object.values(this.sheetId)[0])
+    spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, this.sheetId.values()[0])
     resetCache()
     return this.renameSheet(newName).selectSheet(newName)
   }
@@ -592,7 +595,7 @@ class SpreadsheetManipulation {
     return this.addRequests({
       updateSheetProperties: {
         properties: {
-          sheetId: Object.values(this.sheetId)[0],
+          sheetId: this.sheetId.values()[0],
           title: newName
         },
         fields: 'title'
@@ -682,7 +685,7 @@ class SpreadsheetManipulation {
    * @param {string|Object} color
    * @return {SpreadsheetManipulation}
    */
-  color(range, color) {
+  setColor(range, color) {
     if (typeof color === 'string') {
       if (color.includes('#'))
         color = color.replaceAll('#', '')
@@ -698,7 +701,7 @@ class SpreadsheetManipulation {
     if (!('alpha' in color))
       color.alpha = 1
     return this.addRequests(
-      Object.values(this.sheetId).map(sheetId => ({
+      this.sheetId.values().map(sheetId => ({
         repeatCell: {
           range: this.toGridRange(sheetId, range),
           cell: {
@@ -724,7 +727,7 @@ class SpreadsheetManipulation {
     if (typeof column === 'string')
       column = getColumnNum(column)
     return this.addRequests(
-      Object.values(this.sheetId).map(sheetId => ({
+      this.sheetId.values().map(sheetId => ({
         updateDimensionProperties: {
           range: {
             sheetId,
@@ -747,7 +750,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   autoFill(range) {
-    const sheetId = Object.values(this.sheetId)[0]
+    const sheetId = this.sheetId.values()[0]
     return this.addRequests({
       autoFill: {
         range: this.toGridRange(sheetId, range),
@@ -789,7 +792,7 @@ class SpreadsheetManipulation {
       }
     }
     if (range)
-      request.findReplace.range = this.toGridRange(Object.values(this.sheetId)[0], range)
+      request.findReplace.range = this.toGridRange(this.sheetId.values()[0], range)
     else
       request.findReplace.allSheets = true
     if (matchCase)
@@ -917,7 +920,7 @@ class SpreadsheetManipulation {
         fields: 'userEnteredFormat.numberFormat'
       }
     })
-    return this.addRequests(Object.values(this.sheetId).map(add))
+    return this.addRequests(this.sheetId.values().map(add))
   }
 
   /**
@@ -965,7 +968,7 @@ class SpreadsheetManipulation {
           fields: 'hiddenByUser'
         }
       })
-      return this.addRequests(Object.values(this.sheetId).map(add))
+      return this.addRequests(this.sheetId.values().map(add))
     }
   }
 
@@ -996,7 +999,7 @@ class SpreadsheetManipulation {
           inheritFromBefore: inherit
         }
       })
-    return this.addRequests(Object.values(this.sheetId).map(add))
+    return this.addRequests(this.sheetId.values().map(add))
   }
 
   /**
@@ -1012,7 +1015,7 @@ class SpreadsheetManipulation {
       throw Error(`Tipe ${type} tidak valid.`)
 
     return this.addRequests(
-      Object.values(this.sheetId).map(sheetId => ({
+      this.sheetId.values().map(sheetId => ({
         insertRange: {
           range: this.toGridRange(sheetId, this.processRange(range)[0]),
           shiftDimension: type
