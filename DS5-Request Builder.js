@@ -1625,7 +1625,7 @@ class SpreadsheetManipulation {
 
     let headers, lastRows, lastColumns
     if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
-      const cacheKey = `${this.spreadsheetId}_${this.sheet}_mix_${ranges[0].at(-1).headerRow ?? 1}`,
+      const cacheKey = `${this.spreadsheetId}_${sheet}_mix_${ranges[0].at(-1).headerRow ?? 1}`,
         cache = getGlobalCache()
       if (!cache.headers[cacheKey]) {
         const row = ranges[0].at(-1)?.headerRow ?? 1
@@ -1636,7 +1636,8 @@ class SpreadsheetManipulation {
             spreadsheetId: this.spreadsheetId,
             fillEmpty: false,
             isAll: true,
-            stack: Vertical
+            stack: Vertical,
+            sheet
           })
         )
       }
@@ -1675,8 +1676,8 @@ class SpreadsheetManipulation {
         const process = (column, no) => {
           const startColumnNum = typeof column === 'string' && column.length > 1
             ? (isLastHeader
-            ? headers?.[this.sheet.indexOf(range[0])]?.lastIndexOf(column)
-            : headers?.[this.sheet.indexOf(range[0])]?.indexOf(column)) + 1
+            ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(column)
+            : headers?.[sheet.indexOf(range[0])]?.indexOf(column)) + 1
             : column || lastColumns[range[0]]
           let endColumnLocal = endColumn[no]
           if (!startColumnNum) {
@@ -1687,8 +1688,8 @@ class SpreadsheetManipulation {
             result = `${range[0]}!${startColumn}${range[1] || lastRows[range[0]]}`
           if (endColumnLocal) {
             const endColumnNum = typeof endColumnLocal === 'string' && endColumnLocal.length > 1
-              ? (isLastHeader ? headers?.[this.sheet.indexOf(range[0])]?.lastIndexOf(endColumnLocal)
-              : headers?.[this.sheet.indexOf(range[0])]?.indexOf(endColumnLocal)) + 1 : endColumnLocal || lastColumns[range[0]]
+              ? (isLastHeader ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(endColumnLocal)
+              : headers?.[sheet.indexOf(range[0])]?.indexOf(endColumnLocal)) + 1 : endColumnLocal || lastColumns[range[0]]
             if (!endColumnNum) {
               Logger.log(`Sheet ${range[0]} tidak memiliki kolom ${endColumnLocal}. Range dilewati`)
               return `${range[0]}!#SKIP#`
