@@ -159,7 +159,7 @@ function initObject(object) {
  * @return {boolean}
  */
 function isObject(...values) {
-  return flat(values).every(value => value && typeof value === 'object' && !isArray(value))
+  return values.every(value => value && typeof value === 'object' && !isArray(value))
 }
 
 /**
