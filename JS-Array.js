@@ -190,7 +190,7 @@ class MLArray extends Array {
     if (typeof search !== 'function')
       search = lazyWrap(search)
     iterate(index => {
-      const value = this[index]
+      let value = this[index]
       if (typeof value === 'string')
         value = value.trim()
       const isSame = typeof search === 'function'
