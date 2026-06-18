@@ -179,17 +179,18 @@ class MLArray extends Array {
    * @return {number[]|number[][]}
    */
   search(search, options = {}) {
-    const { plus = 0, withLog = this.withLog } = options
+    const { plus = 0 } = options
     let rows = [], firstRow = null, currentRow = null
-    if (withLog) {
+    if (this.withLog) {
       Logger.log(`Function Name: getIndexes`)
       Logger.log(`Search Value: ${JSON.stringify(search)}`)
       Logger.log(`Values: ${this}`)
       Logger.log(`Index Plus: ${plus}`)
     }
     if (typeof search !== 'function')
-      lazyWrap(search)
-    this.forEach((value, index) => {
+      search = lazyWrap(search)
+    iterate(index => {
+      const value = this[index]
       if (typeof value === 'string')
         value = value.trim()
       const isSame = typeof search === 'function'
@@ -202,7 +203,7 @@ class MLArray extends Array {
         firstRow = null
       } else if (isSame && firstRow == null)
         firstRow = currentRow
-    })
+    }, { from: 0, until: this.length, untilBefore: true })
     if (firstRow) rows.push([firstRow, currentRow])
     return rows
   }
