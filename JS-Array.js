@@ -302,7 +302,7 @@ Array.prototype.asMLArray = function () {
 
 /**
  * @template T
- * @param {T|Array<T|Object<string, T>>|Set<T>} array
+ * @param {Array<T|Object<string, T>>|Set<T>|T} array
  * @param {MLArrayOptions} options
  * @return {MLArray<T>}
  */

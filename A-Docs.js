@@ -51,7 +51,7 @@
 
   2. Fungsi yang Memanggil Fungsi Lain
      -> Fungsi yang di dalamnya terdapat pemanggilan ke fungsi lain di library ini.
-     - addEmailsTo (memanggil: toObject)
+     - addEmailsTo (memanggil: parse)
      - addToGlobalCache (memanggil: getGlobalCache)
      - alert (memanggil: includes, ui)
      - batchUpdate (memanggil: retry)
@@ -63,7 +63,7 @@
      - getFileIdByName (memanggil: addToGlobalCache, getFolderIdFromPath, getGlobalCache, notSameWith, retry, templateLogError)
      - getFileIdsIn (memanggil: getFolderIdFromPath, includes, retry, templateLogError)
      - getFolderIdFromPath (memanggil: addToGlobalCache, getGlobalCache, retry)
-     - getGlobalCache (memanggil: toObject)
+     - getGlobalCache (memanggil: parse)
      - getOptions (memanggil: isObject)
      - getRemoteEventDetail (memanggil: getColumnLetter)
      - includes (memanggil: flat)
@@ -89,7 +89,7 @@
      - templating (memanggil: isObject)
      - toA1Notation (memanggil: getColumnLetter, test)
      - toJSDate (memanggil: isDate)
-     - toObject (memanggil: isAllArray)
+     - parse (memanggil: isAllArray)
      - trim (memanggil: isObject)
      - unique (memanggil: flat)
      - wrap (memanggil: iterate)
@@ -107,7 +107,7 @@
      - getMonth (dipanggil oleh: getCurrentDate)
      - getOptions (dipanggil oleh: containOneOf, endWith, isFalsy, isTruthy, isTypeOf, lowerThan, sameWith, subtract)
      - includes (dipanggil oleh: alert, containOneOf, getFileIdsIn, notSameWith, syncProtectionEditorsBetweenSheet)
-     - isAllArray (dipanggil oleh: toObject)
+     - isAllArray (dipanggil oleh: parse)
      - isDate (dipanggil oleh: toJSDate)
      - isIterable (dipanggil oleh: lazyWrap)
      - isObject (dipanggil oleh: getOptions, sameWith, show, templating, trim)
@@ -119,7 +119,7 @@
      - templateLogError (dipanggil oleh: getFileIdByName, getFileIdsIn)
      - test (dipanggil oleh: isDate, toA1Notation)
      - toA1Notation (dipanggil oleh: getA1NByName)
-     - toObject (dipanggil oleh: addEmailsTo, getGlobalCache)
+     - parse (dipanggil oleh: addEmailsTo, getGlobalCache)
      - trim (dipanggil oleh: containOneOf)
      - ui (dipanggil oleh: alert, show)
      - unique (dipanggil oleh: sum)
@@ -191,7 +191,7 @@
      - toA1Notation: Converter object GridRange (index x,y) menjadi penamaan A1 Notation string readable.
      - toCamelCase: Regex konverter pengubah sentence text regex spasi parser mapper lowercase mapper casing mapper casing identifier regex pattern mapper parser sentence camelCase regex regex sentence parser camel case sentence regex string regex string regex identifier mapper mapper regex sentence.
      - toJSDate: Konverter serial number tanggal Google Sheets epoch 30 Des 1899 ke native JS Date object dengan validasi isDate.
-     - toObject: Penggabung merger builder destructuring Object assign constructor kompilator flatten array map key value rest dictionary dictionary obj object instance array object properties obj dictionary flat map constructor flatten map array merge.
+     - parse: Penggabung merger builder destructuring Object assign constructor kompilator flatten array map key value rest dictionary dictionary obj object instance array object properties obj dictionary flat map constructor flatten map array merge.
      - toSpreadsheetDate: Mengubah JS native timestamp dates/string menjadi angka float serial Google Sheets tanggal.
      - toString: Wrapper JSON.stringify serialisasi object atau array ke JSON string representasi.
      - toast: Trigger render kotak popup kecil notifikasi ringan auto-hide di sudut workspace document UI pemakai.
@@ -214,7 +214,7 @@
        > init: Static factory yang membuat MLArray dari array/Set/value dengan opsi auto-flat, deleteNull, dan unique.
        > map: Override map bawaan sebagai jembatan tipe IntelliSense yang mengembalikan MLArray.
        > mapCast: Map yang otomatis meng-cast sub-array menjadi MLArray sebelum dikirim ke callback.
-       > mapToObject: Shorthand map + toObject, mengonversi hasil mapping ke MLObject.
+       > mapToObject: Shorthand map + parse, mengonversi hasil mapping ke MLObject.
        > slice: Override slice dengan 1-based index; throw error jika start/end bernilai 0.
        > join: Override join dengan pemisah 'dan' di elemen terakhir untuk keterbacaan bahasa Indonesia.
        > push: Override push dengan batch-safe chunking dan opsi 'many' untuk push paralel ke multi-index.
@@ -232,7 +232,7 @@
        > toParam: Transpose 2D array — mengubah baris menjadi kolom per-index.
        > extract: Mengekstrak kolom tertentu dari 2D array berdasarkan 1-based index, mendukung multi-kolom dan wrap.
        > sort: Override sort dengan dukungan Ascending/Descending dan auto-deteksi number vs string comparison.
-       > toObject: Konversi array ke MLObject via fromEntries (jika 2D) atau assign (jika array of objects).
+       > parse: Konversi array ke MLObject via fromEntries (jika 2D) atau assign (jika array of objects).
 
      - MLObject: Object wrapper class dengan cached entries keys values iterasi fungsional chainable dan reverse lookup utility methods.
        > fromEntries: Static factory yang membuat MLObject dari array entries [[key, value], ...].

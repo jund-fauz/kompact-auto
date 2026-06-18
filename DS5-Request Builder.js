@@ -25,6 +25,17 @@
  *  fillEmpty?: boolean,
  *  withHeader?: boolean
  * }} ValuesOption
+ * @typedef {{
+ *   requests?: MLArray<Object>,
+ *   valueRequests?: MLArray<Object>,
+ *   customRequests?: Object,
+ *   except?: SheetType,
+ *   batch?: number,
+ *   withoutRetry?: boolean,
+ *   afterRun?: function,
+ *   withLog?: boolean
+ * }} SpreadsheetManipulationOptions
+ * @typedef {{except?: SheetType, includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} ProcessRangeOptions
  */
 
 
@@ -32,7 +43,7 @@ class SpreadsheetManipulation {
   /**
    * @param {string|null} spreadsheetIdOrTitle
    * @param {SheetType|null} sheet
-   * @param {Object} options
+   * @param {SpreadsheetManipulationOptions} options
    */
   constructor(spreadsheetIdOrTitle = null, sheet = null, options = {}) {
     const {
@@ -1227,7 +1238,7 @@ class SpreadsheetManipulation {
     /** @type {Object.<string, GridRange>} */
     let gridRanges = null
     if (!isObject(range))
-      gridRanges = toObject(
+      gridRanges = parse(
         range
           ? range.map(range => ({ [range]: this.toGridRange(...range.split('!')) }))
           : this.sheet.map(sheet => ({ [sheet]: { sheetId: this.sheetId[sheet] } }))
@@ -1241,7 +1252,7 @@ class SpreadsheetManipulation {
     }
 
     if (unprotectedRange)
-      unprotectedRange = toObject(
+      unprotectedRange = parse(
         this.sheet.map(sheet => ({
           [sheet]: unprotectedRange.filter(range => range.startsWith(sheet + '!')).map(range => this.toGridRange(sheet, range))
         }))
@@ -1297,7 +1308,7 @@ class SpreadsheetManipulation {
   /**
    * Mengosongkan nilai pada range menggunakan batchClear via addEmptyValueRequests.
    * @param {RawRange|RawRange[]} ranges
-   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @param {ProcessRangeOptions} options
    * @return {SpreadsheetManipulation}
    */
   empty(ranges, options = {}) {
@@ -1579,15 +1590,13 @@ class SpreadsheetManipulation {
   /**
    * Mengonversi RawRange input (array/string/object) menjadi array A1N string lengkap dengan sheet prefix.
    * @param {RawRange|RawRange[]} ranges
-   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @param {ProcessRangeOptions} options
    * @return {string[]}
    */
   processRange(ranges, options = {}) {
     let { except = null, includeInvalid = false, sheet = this.sheet, withoutSheet = false } = options
     if (typeof sheet === 'string')
       sheet = sheet.split(', ')
-    if (!(sheet instanceof MLArray))
-      sheet = MLArray.init(sheet)
     if (typeof sheet === 'number' || (isArray(sheet) && isTypeOf('number', sheet)))
       sheet = sheet.map(sheet => sheet.toString())
     if (except) {
@@ -1647,15 +1656,15 @@ class SpreadsheetManipulation {
       headers = cache[CacheType.Header][cacheKey]
     }
 
-    if (ranges.some(range => sameWith(0, !range[1], !range[2], range.at(-1).endRow, range.at(-1).endColumn, {
+    if (ranges.some(range => sameWith(0, range[1], range[2], range.at(-1).endRow, range.at(-1).endColumn, {
       logic: Or,
       withLog: false
     }))) {
       const key = `max_${sheet}_mix`
       if (!this.cache[key])
         this.cache[key] = this.get({ fields: 'sheets.properties(title,gridProperties(rowCount,columnCount))' }).sheets
-      lastRows = toObject(this.cache[key].map(sheet => ({ [sheet.properties.title]: this.cache[key].properties.gridProperties.rowCount })))
-      lastColumns = toObject(this.cache[key].map(sheet => ({ [sheet.properties.title]: this.cache[key].properties.gridProperties.columnCount })))
+      lastRows = parse(this.cache[key].map(sheet => ({ [sheet.properties.title]: this.cache[key].properties.gridProperties.rowCount })))
+      lastColumns = parse(this.cache[key].map(sheet => ({ [sheet.properties.title]: this.cache[key].properties.gridProperties.columnCount })))
     }
 
     ranges = ranges
@@ -1672,7 +1681,7 @@ class SpreadsheetManipulation {
             columnCount = null
           } = isObject(options) ? options : {},
           startColumn = range[2]
-        if (isAllArray(startColumn, endColumn) && startColumn.length < endColumn?.length)
+        if (isAllArray(startColumn, endColumn) && startColumn?.length < endColumn?.length)
           throw Error(`Tidak valid. Jumlah endColumns lebih banyak dari startColumns.`)
         startColumn = lazyWrap(startColumn)
         endColumn = lazyWrap(endColumn)
@@ -1754,7 +1763,7 @@ class SpreadsheetManipulation {
  * Membuat instans class Request Builder
  * @param {string|null} spreadsheetIdOrTitle
  * @param {string|string[]|null} sheet
- * @param options
+ * @param {SpreadsheetManipulationOptions} options
  * @return {SpreadsheetManipulation}
  */
 function createRequest(spreadsheetIdOrTitle = null, sheet = null, options = {}) {

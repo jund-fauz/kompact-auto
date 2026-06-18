@@ -76,7 +76,7 @@ class MLObject {
    * @return {MLObject}
    */
   filter(func) {
-    return new MLObject(toObject(this.entries().filter(([key, value]) => func(key, value))))
+    return new MLObject(parse(this.entries().filter(([key, value]) => func(key, value))))
   }
 
   /**
@@ -141,7 +141,7 @@ class MLObject {
   }
 }
 
-Object.prototype.asMLObject = () => {
+Object.prototype.asMLObject = function () {
   return initObject(this)
 }
 
@@ -175,7 +175,7 @@ function isEmpty(object) {
  * @param {Object<string, T>[]|[string, T]|string} param
  * @return {Object<string, T>}
  */
-function toObject(param) {
+function parse(param) {
   if (typeof param === 'string')
     return JSON.parse(param)
   if (isAllArray(...param))

@@ -7,19 +7,16 @@ class Storage {
 
   /**
    * @param {string|string[]} keys
-   * @return {MLObject}
+   * @return {MLObject|*|null}
    */
   get(...keys) {
     const keysMLArray = MLArray.init(keys, { flatting: true }),
-      process = key => toObject(this.storage.getProperty(key) ?? 'null')
-    if (keysMLArray.length === 1)
-      return process(keysMLArray[0]).asMLObject()
-    else
-      return keysMLArray.mapToObject(key => ({ [key]: process(key) }))
+      process = key => parse(this.storage.getProperty(key) ?? 'null')
+    return keysMLArray.mapToObject(key => ({ [key]: process(key) }))
   }
 
   /**
-   * @param {string|string[]|Object} keys
+   * @param {string|string[]|MLObject} keys
    * @param {Object|Object[]|null} values
    * @return {Object}
    */
@@ -30,11 +27,12 @@ class Storage {
     }
     if (typeof keys === 'string')
       return process(keys, values)[keys]
-    if (isObject(keys))
-      keys = Object.entries(keys)
-    else if (keys.length !== values.length)
-      throw Error('Panjang keys dan values tidak sama.')
-    return toObject(keys.map((key, no) => process(key, values[no])))
+    if (values) {
+      if (keys.length !== values.length)
+        throw Error('Panjang keys dan values tidak sama.')
+      return parse(keys.map((key, no) => process(key, values[no])))
+    }
+    return parse(keys.map(process))
   }
 
   /**
