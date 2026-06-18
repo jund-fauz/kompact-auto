@@ -1414,8 +1414,8 @@ class SpreadsheetManipulation {
   run(...params) {
     this.deleteInvalidRequest()
     const total = this.requests.length + this.valueRequests.length + this.emptyValueRequests.length
-    while (this.emptyValueRequests.length >= this.batch) {
-      Logger.log(`Mengeksekusi ${this.batch} values clear`)
+    while (this.emptyValueRequests.length) {
+      Logger.log(`Mengeksekusi ${Math.min(this.batch, this.emptyValueRequests.length)} values clear`)
       spreadsheet.Values.batchClear({ ranges: this.emptyValueRequests.splice(0, this.batch) }, this.spreadsheetId)
     }
     if (this.updateValueFirst) {
@@ -1499,7 +1499,7 @@ class SpreadsheetManipulation {
    */
   processEdit() {
     while (this.valueRequests.length) {
-      Logger.log(`Mengeksekusi ${this.batch} values update`)
+      Logger.log(`Mengeksekusi ${Math.min(this.batch, this.requests.length)} values update`)
       spreadsheet.Values.batchUpdate({
         data: this.valueRequests.splice(0, this.batch),
         valueInputOption: this.vio
@@ -1513,7 +1513,7 @@ class SpreadsheetManipulation {
    */
   processRequest(...params) {
     while (this.requests.length) {
-      Logger.log(`Mengeksekusi ${this.batch} request`)
+      Logger.log(`Mengeksekusi ${Math.min(this.batch, this.requests.length)} request`)
       const toExecuteRequests = this.requests.splice(0, this.batch)
       this.responses.push(...(batchUpdate({
         requests: toExecuteRequests,
