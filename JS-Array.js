@@ -13,7 +13,7 @@ class MLArray extends Array {
    * @return {MLArray<T>}
    */
   static init(array, options = {}) {
-    const { flatting = false, deleteNull = false, unique = false, withLog = true } = options
+    const { flatting = false, deleteNull = false, unique = false, withLog = false } = options
     array = lazyWrap(array)
     let result = this.from(array)
     result.batchSize = 50000
