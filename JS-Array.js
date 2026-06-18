@@ -57,7 +57,7 @@ class MLArray extends Array {
    * @param {number|null} end
    */
   slice(start, end = null) {
-    if (sameWith(0, start, end, { logic: Or }))
+    if (sameWith(0, start, end, { logic: Or, withLog: this.withLog }))
       throw Error('Start / end tidak boleh 0')
     if (start >= 1)
       start = start - 1

@@ -74,6 +74,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Memilih sheet target berdasarkan nama/preset (Daily/Monthly/Active/All) dan meng-cache sheetId mapping.
    * @param {SheetType} sheet
    * @param {SheetType} except
    * @return {SpreadsheetManipulation}
@@ -129,6 +130,10 @@ class SpreadsheetManipulation {
     return this
   }
 
+  /**
+   * Mengambil instance SpreadsheetApp.Sheet yang sedang aktif dari cache.
+   * @return {GoogleAppsScript.Spreadsheet.Sheet}
+   */
   selectedSheet() {
     if (!this.cache.activeSheet)
       this.cache.activeSheet = SpreadsheetApp.getActiveSheet()
@@ -136,7 +141,7 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Mengambil range yang sedang aktif
+   * Mengembalikan objek detail range aktif (sheet, range, kolom, baris, value) dari seleksi user.
    * @return {Object}
    */
   selectedItems() {
@@ -154,7 +159,8 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Mengambil cell yang sedang aktif (dikelilingi oleh border yang lebih gelap)
+   * Mengembalikan objek detail cell aktif tunggal (sheet, range, column, row, value).
+   * @param {{columnInNumber?: boolean}} options
    * @return {Object}
    */
   selectedItem(options = {}) {
@@ -174,6 +180,8 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Wrapper Sheets.Spreadsheets.get dengan parameter fields dan ranges, mendukung opsi sheet filter.
+   * @param {{ranges?: RawRange|RawRange[], sheet?: SheetType|null, [key: string]: any}} optionParams
    * @return {GoogleAppsScript.Sheets.Schema.Spreadsheet}
    */
   get(optionParams = {}) {
@@ -191,6 +199,11 @@ class SpreadsheetManipulation {
     return spreadsheet.get(this.spreadsheetId, options)
   }
 
+  /**
+   * Mengambil baris header dari sheet dengan caching global, mengembalikan MLArray dengan unshift placeholder.
+   * @param {{headerRow?: number, unshiftCounts?: number, sheet?: string}} options
+   * @return {MLArray<string>}
+   */
   headers(options = {}) {
     const { headerRow = this.headerRow[this.sheet[0]] ?? 1, unshiftCounts = 1, sheet = this.sheet[0] } = options
     const cacheKey = `${this.spreadsheetId}_${sheet}_${headerRow}`,
@@ -208,6 +221,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Resolver nama kolom ke nomor/huruf kolom berdasarkan header row, mendukung multi-kolom dan prefix.
    * @param {string|string[]} columnName
    * @param {{
    *    headerRow?: number,
@@ -262,6 +276,12 @@ class SpreadsheetManipulation {
     return result
   }
 
+  /**
+   * Mengambil jumlah maksimum baris atau kolom dari grid properties sheet dengan caching.
+   * @param {Column|Row|string} type
+   * @param {{isLetter?: boolean}} options
+   * @return {number|string}
+   */
   max(type, options = {}) {
     const { isLetter = false } = options,
       key = `max_${this.sheet[0]}_${type}`
@@ -283,7 +303,10 @@ class SpreadsheetManipulation {
     }
   }
 
-  /** @return {string} */
+  /**
+   * Mengambil timezone spreadsheet dari properties dengan caching.
+   * @return {string}
+   */
   timezone() {
     if (!this.cache.timezone)
       this.cache.timezone = this.get({ sheet: null, fields: 'properties.timeZone' }).properties.timeZone
@@ -291,8 +314,9 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Mengambil satu nilai tunggal dari range menggunakan Sheets.Values.get, return undefined jika kosong.
    * @param {RawRange|RawRange[]} ranges
-   * @param {{vro: ValueRenderOption, sheet: string}|Object} options
+   * @param {{vro?: ValueRenderOption, sheet?: string}|Object} options
    * @return {undefined|any}
    */
   value(ranges, options = {}) {
@@ -307,6 +331,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Mengambil data multi-range dengan batchGet, mendukung stack Horizontal/Vertical, filter, dateFormat, withHeader, dan notFiltered.
    * @template T
    * @param {RawRange|RawRange[]} ranges
    * @param {ValuesOption} options
@@ -547,12 +572,22 @@ class SpreadsheetManipulation {
     return !values ? [] : trim(values)
   }
 
+  /**
+   * Menduplikasi sheet pertama yang terseleksi ke sheet baru dengan nama baru.
+   * @param {string} newName
+   * @return {SpreadsheetManipulation}
+   */
   duplicateSheet(newName) {
     spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, Object.values(this.sheetId)[0])
     resetCache()
     return this.renameSheet(newName).selectSheet(newName)
   }
 
+  /**
+   * Mengganti nama sheet yang terseleksi via updateSheetProperties request.
+   * @param {string} newName
+   * @return {SpreadsheetManipulation}
+   */
   renameSheet(newName) {
     return this.addRequests({
       updateSheetProperties: {
@@ -566,7 +601,9 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Memindahkan fokus cursor aktif ke range A1N target pada sheet aktif.
    * @param {string} to A1Notation
+   * @return {SpreadsheetManipulation}
    */
   moveFocus(to) {
     this.selectedSheet().setActiveRange(
@@ -576,8 +613,9 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * @param {number} startRowOrRow
-   * @param {string} startColumnOrColumn
+   * Mencari baris/kolom yang mengandung searchValues menggunakan createTextFinder pada range tertentu.
+   * @param {number|string} startRowOrRow
+   * @param {string|number} startColumnOrColumn
    * @param {string|string[]} searchValues
    * @param {Column|Row|string} type
    * @param {{headerRow?: number, isLastHeader?: boolean, defaultValue?: number, sheet?: SheetType}} options
@@ -621,6 +659,12 @@ class SpreadsheetManipulation {
     return result || defaultValue
   }
 
+  /**
+   * Menambahkan request mergeCells pada range yang diproses ke seluruh sheet target.
+   * @param {RawRange|RawRange[]} range
+   * @param {string} type MergeType
+   * @return {SpreadsheetManipulation}
+   */
   merge(range, type) {
     return this.addRequests(
       this.processRange(range).map(range => ({
@@ -632,6 +676,12 @@ class SpreadsheetManipulation {
     )
   }
 
+  /**
+   * Mengatur warna teks foreground pada range, mendukung input hex string atau objek RGB.
+   * @param {RawRange|RawRange[]} range
+   * @param {string|Object} color
+   * @return {SpreadsheetManipulation}
+   */
   color(range, color) {
     if (typeof color === 'string') {
       if (color.includes('#'))
@@ -664,6 +714,12 @@ class SpreadsheetManipulation {
     )
   }
 
+  /**
+   * Mengubah lebar pixel kolom tertentu via updateDimensionProperties request.
+   * @param {string|number} column
+   * @param {number} sizeInPixel
+   * @return {SpreadsheetManipulation}
+   */
   resize(column, sizeInPixel) {
     if (typeof column === 'string')
       column = getColumnNum(column)
@@ -685,6 +741,11 @@ class SpreadsheetManipulation {
     )
   }
 
+  /**
+   * Menambahkan request autoFill pada range untuk mengisi pola data secara otomatis.
+   * @param {RawRange|RawRange[]} range
+   * @return {SpreadsheetManipulation}
+   */
   autoFill(range) {
     const sheetId = Object.values(this.sheetId)[0]
     return this.addRequests({
@@ -696,7 +757,17 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Mereplikasi Find & Replace (Ctrl + H)
+   * Replikasi Find & Replace (Ctrl+H) via findReplace request, mendukung regex, matchCase, matchEntire.
+   * @param {{
+   *  find?: string,
+   *  replace?: string,
+   *  range?: RawRange|RawRange[],
+   *  matchEntire?: boolean,
+   *  matchCase?: boolean,
+   *  regex?: boolean,
+   *  includeFormula?: boolean
+   * }} options
+   * @return {SpreadsheetManipulation}
    */
   replace(options = {}) {
     const {
@@ -733,6 +804,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menghapus sheet, proteksi, baris, atau kolom berdasarkan tipe dengan opsi include/except filter.
    * @param {Row|Column|Sheet|Protection|string} type
    * @param {{include?: number, except?: number, number?: number|number[], key?: number, range?: RawRange|RawRange[]}} options
    * @return {SpreadsheetManipulation}
@@ -803,6 +875,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menyalin range dari sourceSheet ke targetSheet dengan pasteType tertentu (format/formula/normal).
    * @param {string} sourceSheet
    * @param {RawRange|RawRange[]} range
    * @param {PasteType} pasteType
@@ -823,6 +896,12 @@ class SpreadsheetManipulation {
     })))
   }
 
+  /**
+   * Mengatur format tanggal pada range via repeatCell numberFormat request ke seluruh sheetId target.
+   * @param {RawRange|RawRange[]} range
+   * @param {string} format
+   * @return {SpreadsheetManipulation}
+   */
   formatDate(range, format) {
     const add = id => ({
       repeatCell: {
@@ -841,6 +920,13 @@ class SpreadsheetManipulation {
     return this.addRequests(Object.values(this.sheetId).map(add))
   }
 
+  /**
+   * Menyembunyikan atau menampilkan sheet/baris/kolom via updateSheetProperties atau updateDimensionProperties.
+   * @param {Sheet|Row|Column|string} type
+   * @param {boolean} view
+   * @param {{columnOrRow?: number|string, count?: number, except?: SheetType}} options
+   * @return {SpreadsheetManipulation}
+   */
   toggleView(type, view, options = {}) {
     let { columnOrRow = null, count = 1, except = null } = options
     if (!this.sheet)
@@ -883,6 +969,13 @@ class SpreadsheetManipulation {
     }
   }
 
+  /**
+   * Menyisipkan baris atau kolom baru setelah posisi tertentu dengan opsi inherit format.
+   * @param {number|string} columnOrRow
+   * @param {Column|Row|string} type
+   * @param {{count?: number, inherit?: boolean}} options
+   * @return {SpreadsheetManipulation}
+   */
   insertAfter(columnOrRow, type, options = {}) {
     if (notSameWith(type, Column, Row))
       throw Error(`Tipe ${type} tidak valid`)
@@ -906,6 +999,12 @@ class SpreadsheetManipulation {
     return this.addRequests(Object.values(this.sheetId).map(add))
   }
 
+  /**
+   * Menyisipkan cell baru pada range dengan shiftDimension Column atau Row.
+   * @param {RawRange|RawRange[]} range
+   * @param {Column|Row|string} type
+   * @return {SpreadsheetManipulation}
+   */
   insertCell(range, type) {
     if (!type)
       throw Error('Tipe belum didefinisikan')
@@ -923,6 +1022,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Mengurutkan range data dengan helper column, mendukung multi-kolom sort dan hideProcessed filter.
    * @param {string} startColumnTitle
    * @param {string} notEmptyColumnTitle
    * @param {string} endColumnTitle
@@ -1038,10 +1138,12 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menerapkan basic filter pada range berdasarkan kolom dan condition type tertentu.
    * @param {string|Object[]} ranges
    * @param {number|string} column
    * @param {ConditionType} condition
-   * @param {Object} options
+   * @param {{resetFilter?: boolean}} options
+   * @return {SpreadsheetManipulation}
    */
   filter(ranges, column, condition, options = {}) {
     const rangeOptions = {}
@@ -1094,6 +1196,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Mengunci range/sheet dengan proteksi, mendukung editors, description, unprotectedRange, dan auto-delete proteksi lama.
    * @param {{
    *  description?: string,
    *  editors?: string|string[],
@@ -1101,6 +1204,7 @@ class SpreadsheetManipulation {
    *  range?: RawRange|RawRange[],
    *  unprotectedRange?: RawRange|RawRange[]
    * }} options
+   * @return {SpreadsheetManipulation}
    */
   protect(options = {}) {
     const {
@@ -1188,21 +1292,32 @@ class SpreadsheetManipulation {
     return this
   }
 
+  /**
+   * Mengosongkan nilai pada range menggunakan batchClear via addEmptyValueRequests.
+   * @param {RawRange|RawRange[]} ranges
+   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @return {SpreadsheetManipulation}
+   */
   empty(ranges, options = {}) {
     ranges = this.processRange(ranges, options)
     return this.addEmptyValueRequests(ranges)
   }
 
-  /** @return {SpreadsheetManipulation} */
+  /**
+   * Mengubah valueInputOption menjadi Raw agar input tidak di-parse oleh Sheets.
+   * @return {SpreadsheetManipulation}
+   */
   inputAsRaw() {
     this.vio = Raw
     return this
   }
 
   /**
+   * Menulis satu nilai ke satu atau banyak range, mendukung function callback untuk dynamic values.
    * @param {RawRange|RawRange[]} ranges
-   * @param {Object|Object[]|Object[][]} values
-   * @param options
+   * @param {Object|Object[]|Object[][]|Function} values
+   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @return {SpreadsheetManipulation}
    */
   setValue(ranges, values, options = {}) {
     const isValuesArray = isArray(values)
@@ -1243,9 +1358,11 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menulis array 2D values ke range, mendukung multi-range dengan distribusi values otomatis.
    * @param {string|string[]|Object[]|Object[][]} ranges
    * @param {Object|Object[]|Object[][]|Object[][][]} values
-   * @param options
+   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @return {SpreadsheetManipulation}
    */
   setValues(ranges, values, options = {}) {
     const isValuesArray = isArray(values),
@@ -1281,12 +1398,20 @@ class SpreadsheetManipulation {
     return this
   }
 
+  /**
+   * Menandai flag untuk auto-grant IMPORTRANGE permission pada saat run dieksekusi.
+   * @return {SpreadsheetManipulation}
+   */
   grant() {
     this.customRequests.grant = true
     return this
   }
 
-  /** @param {any[]} params */
+  /**
+   * Mengeksekusi seluruh queued requests (clear, values update, batchUpdate) secara berurutan dan mengembalikan responses.
+   * @param {any[]} params
+   * @return {Object[]}
+   */
   run(...params) {
     this.deleteInvalidRequest()
     while (this.emptyValueRequests.length >= this.batch) {
@@ -1369,6 +1494,9 @@ class SpreadsheetManipulation {
     return this.responses
   }
 
+  /**
+   * Mengeksekusi seluruh valueRequests via Sheets.Values.batchUpdate dalam batch.
+   */
   processEdit() {
     while (this.valueRequests.length) {
       Logger.log(`Mengeksekusi ${this.batch} values update`)
@@ -1380,7 +1508,8 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * @param {*} params
+   * Mengeksekusi seluruh structural requests via Sheets.Spreadsheets.batchUpdate dalam batch.
+   * @param {any[]} params
    */
   processRequest(...params) {
     while (this.requests.length) {
@@ -1397,7 +1526,9 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menambahkan satu atau banyak request object ke antrian requests setelah di-flat.
    * @param {Object|Object[]} array
+   * @return {SpreadsheetManipulation}
    */
   addRequests(...array) {
     array = flat(array)
@@ -1407,7 +1538,9 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menambahkan satu atau banyak value update object ke antrian valueRequests.
    * @param {Object[]|Object[][]} array
+   * @return {SpreadsheetManipulation}
    */
   addValueRequests(...array) {
     array = flat(array)
@@ -1417,7 +1550,9 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Menambahkan range string ke antrian emptyValueRequests untuk batchClear.
    * @param {Object[]|Object[][]} array
+   * @return {SpreadsheetManipulation}
    */
   addEmptyValueRequests(...array) {
     array = flat(array)
@@ -1426,6 +1561,9 @@ class SpreadsheetManipulation {
     return this
   }
 
+  /**
+   * Membersihkan request yang tidak valid (empty object atau tipe salah) dari ketiga antrian.
+   */
   deleteInvalidRequest() {
     if (this.requests.length)
       this.requests.filter(req => isObject(req) && Object.keys(req).length)
@@ -1436,6 +1574,7 @@ class SpreadsheetManipulation {
   }
 
   /**
+   * Mengonversi RawRange input (array/string/object) menjadi array A1N string lengkap dengan sheet prefix.
    * @param {RawRange|RawRange[]} ranges
    * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
    * @return {string[]}
@@ -1572,10 +1711,21 @@ class SpreadsheetManipulation {
     return withoutSheet ? unique(ranges.map(range => range.split('!')[1])) : ranges
   }
 
+  /**
+   * Validator helper yang mengecek apakah input ranges berformat array multi-range.
+   * @param {any} ranges
+   * @return {boolean}
+   */
   isRangesAnArray(ranges) {
     return isArray(ranges) && (isTypeOf('string', ...ranges) || isAllArray(...ranges) || isObject(...ranges) || isArray(ranges[1]))
   }
 
+  /**
+   * Mengonversi sheet name + range menjadi objek GridRange menggunakan editRange().toGrid().
+   * @param {string} sheet
+   * @param {RawRange} range
+   * @return {GridRange}
+   */
   toGridRange(sheet, range) {
     if (typeof sheet === 'string')
       sheet = this.sheetId[sheet]
@@ -1585,7 +1735,8 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * @param headerRow
+   * Menyimpan nomor header row untuk sheet pertama yang terseleksi ke cache.
+   * @param {number} headerRow
    * @return {SpreadsheetManipulation}
    */
   setHeaderRow(headerRow) {
