@@ -57,13 +57,11 @@ class MLArray extends Array {
    * @param {number|null} end
    */
   slice(start, end = null) {
-    if (sameWith(0, start, end, { logic: Or, withLog: this.withLog }))
+    if (sameWith(0, start, end, { logic: Or, withLog: !!this.withLog }))
       throw Error('Start / end tidak boleh 0')
     if (start >= 1)
       start = start - 1
-    if (end <= -1)
-      end = end + 1
-    return end ? super.slice(start, end) : super.slice(start)
+    return end != null ? super.slice(start, end) : super.slice(start)
   }
 
   /**
@@ -71,7 +69,7 @@ class MLArray extends Array {
    * @param {{and?: string, separator?: string}} options
    * @return {string}
    */
-  join(options = {}) {
+  readableJoin(options = {}) {
     switch (this.length) {
       case 0:
         return ''
