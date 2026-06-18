@@ -154,7 +154,7 @@ class SpreadsheetManipulation {
       endColumn: getColumnLetter(range.getColumn()),
       startRow: range.getRow(),
       endRow: range.getLastRow(),
-      value: range.get()
+      value: range.getValue()
     }
   }
 
@@ -1106,9 +1106,8 @@ class SpreadsheetManipulation {
 
     if (this.delay)
       Utilities.sleep(this.delay * 1000)
-    this
-      .run()
-      .empty([startRow, headers.indexOf(helperColName), { endRow: beforeEmptyRow }])
+    this.run()
+    this.empty([startRow, headers.indexOf(helperColName), { endRow: beforeEmptyRow }])
       .updateValueFirst = false
     if (hideProcessed) {
       const filterCriteria = column => ({
@@ -1414,6 +1413,7 @@ class SpreadsheetManipulation {
    */
   run(...params) {
     this.deleteInvalidRequest()
+    const total = this.requests.length + this.valueRequests.length + this.emptyValueRequests.length
     while (this.emptyValueRequests.length >= this.batch) {
       Logger.log(`Mengeksekusi ${this.batch} values clear`)
       spreadsheet.Values.batchClear({ ranges: this.emptyValueRequests.splice(0, this.batch) }, this.spreadsheetId)
@@ -1425,7 +1425,7 @@ class SpreadsheetManipulation {
       this.processRequest(...params)
       this.processEdit()
     }
-    Logger.log(`Berhasil mengeksekusi ${this.requests.length + this.valueRequests.length + this.emptyValueRequests.length} request pada spreadsheet ${this.spreadsheet}`)
+    Logger.log(`Berhasil mengeksekusi ${total} request pada spreadsheet ${this.spreadsheet}`)
     const customRequestKeys = Object.keys(this.customRequests)
     if (customRequestKeys.length) {
       customRequestKeys.forEach(key => {
