@@ -59,7 +59,8 @@ var ui = () => SpreadsheetApp.getUi(),
       SsId: /(IMPORTRANGE\s*\(\s*["'])([^"']*)(["']\s*,)/gi,
       Range: /(IMPORTRANGE\s*\(\s*["'][^"']*["']\s*,\s*["'])([^"']*)(["']\s*\))/gi
     },
-    Invoice: /^[a-zA-Z]+[-_]\d+/
+    Invoice: /^[a-zA-Z]+[-_]\d+/,
+    AllCharacterWithoutFormula: /(?s)^.*/
   }),
 
   /** #Sheets API */

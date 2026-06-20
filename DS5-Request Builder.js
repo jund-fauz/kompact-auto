@@ -107,7 +107,7 @@ class SpreadsheetManipulation {
     switch (sheet) {
       case Daily:
         /** @type {MLArray<string>} */
-        this.sheet = MLArray.init(iterate(i => i.toString(), { until: 31 }))
+        this.sheet = MLArray.init(iterate(i => `${i}`, { until: 31 }))
         break
       case Monthly:
         this.sheet = MLArray.init(shortMonths)
@@ -297,7 +297,7 @@ class SpreadsheetManipulation {
    * @return {number|string}
    */
   max(type, options = {}) {
-    const { isLetter = false, sheet = this.sheet[0]} = options,
+    const { isLetter = false, sheet = this.sheet[0] } = options,
       key = `max_${sheet}_${type}`
     switch (type) {
       case Column:
@@ -378,10 +378,13 @@ class SpreadsheetManipulation {
           vals = vals.concat(repeat(() => [], rowCount - vals.length))
         return vals.length ? vals : repeat(() => [], rowCount === Infinity ? 1 : rowCount)
       }
-    let headerRow = this.headerRow[this.sheet[0]] ?? 1, column = 0, sampleRange = '', {
-      sheet = this.sheet,
-      ...optionsForAPI
-    } = rest
+    let headerRow = this.headerRow[this.sheet[0]] ?? 1,
+      column = 0,
+      sampleRange = '',
+      {
+        sheet = this.sheet,
+        ...optionsForAPI
+      } = rest
     if (ranges.every(isArray))
       headerRow = unique(ranges.map(range => range.at(-1).headerRow))[0] ?? 1
     ranges = this.processRange(ranges, { sheet })
@@ -779,7 +782,9 @@ class SpreadsheetManipulation {
    *  matchEntire?: boolean,
    *  matchCase?: boolean,
    *  regex?: boolean,
-   *  includeFormula?: boolean
+   *  includeFormula?: boolean,
+   *  sheet?: SheetType,
+   *  except?: SheetType
    * }} options
    * @return {SpreadsheetManipulation}
    */
@@ -791,30 +796,42 @@ class SpreadsheetManipulation {
       matchEntire = false,
       matchCase = false,
       regex = false,
-      includeFormula = true
+      includeFormula = false,
+      sheet = this.sheet,
+      except = null
     } = options
     if (!find) return this
     if (regex && matchEntire)
       Logger.log('Pemberitahuan: Variabel matchEntire Anda tidak akan digunakan karena Anda sudah memakai regex')
     const request = {
-      findReplace: {
-        find,
-        replacement: replace
-      }
+      find,
+      replacement: replace
     }
-    if (range)
-      request.findReplace.range = this.toGridRange(this.sheetId.values()[0], range)
-    else
-      request.findReplace.allSheets = true
     if (matchCase)
-      request.findReplace.matchCase = true
+      request.matchCase = true
     if (matchEntire)
-      request.findReplace.matchEntireCell = true
+      request.matchEntireCell = true
     if (regex)
-      request.findReplace.searchByRegex = true
+      request.searchByRegex = true
     if (includeFormula)
-      request.findReplace.includeFormulas = true
-    return this.addRequests(request)
+      request.includeFormulas = true
+    if (!range) {
+      if (sameWith(All, sheet, sheet[0], { logic: Or })) {
+        request.allSheets = true
+        return this.addRequests({ findReplace: request })
+      }
+      return this.addRequests(this.processSheet(sheet, except).map(sheet => ({
+        findReplace: {
+          ...request,
+          sheetId: this.sheetId[sheet]
+        }
+      })))
+    }
+    return this.addRequests(
+      this.processRange(range, { sheet, except }).map(range => ({
+        findReplace: { ...request, range: this.toGridRange(...range.split('!')) }
+      }))
+    )
   }
 
   /**
@@ -1587,6 +1604,19 @@ class SpreadsheetManipulation {
       this.emptyValueRequests.filter(req => typeof req === 'string')
   }
 
+  processSheet(sheet, except) {
+    if (typeof sheet === 'string')
+      sheet = initArray(sheet.split(', '))
+    if (typeof sheet === 'number' || (isArray(sheet) && isTypeOf('number', sheet)))
+      sheet = initArray(sheet).map(sheet => sheet.toString())
+    if (except) {
+      if (typeof except === 'string')
+        except = initArray(except.split(', '))
+      sheet = sheet.immutableFilter(sheet => !except.includes(sheet))
+    }
+    return sheet
+  }
+
   /**
    * Mengonversi RawRange input (array/string/object) menjadi array A1N string lengkap dengan sheet prefix.
    * @param {RawRange|RawRange[]} ranges
@@ -1595,15 +1625,7 @@ class SpreadsheetManipulation {
    */
   processRange(ranges, options = {}) {
     let { except = null, includeInvalid = false, sheet = this.sheet, withoutSheet = false } = options
-    if (typeof sheet === 'string')
-      sheet = sheet.split(', ')
-    if (typeof sheet === 'number' || (isArray(sheet) && isTypeOf('number', sheet)))
-      sheet = sheet.map(sheet => sheet.toString())
-    if (except) {
-      if (typeof except === 'string')
-        except = except.split(', ')
-      sheet.filter(sheet => !except.includes(sheet))
-    }
+    sheet = this.processSheet(sheet, except)
     ranges = lazyWrap(ranges)
 
     if (isTypeOf('string', ranges)) {
@@ -1663,8 +1685,8 @@ class SpreadsheetManipulation {
       const key = `max_${sheet}_mix`
       if (!this.cache[key])
         this.cache[key] = this.get({ fields: 'sheets.properties(title,gridProperties(rowCount,columnCount))' }).sheets
-      lastRows = parse(this.cache[key].map(sheet => ({ [sheet.properties.title]: this.cache[key].properties.gridProperties.rowCount })))
-      lastColumns = parse(this.cache[key].map(sheet => ({ [sheet.properties.title]: this.cache[key].properties.gridProperties.columnCount })))
+      lastRows = parse(this.cache[key].map(({ properties }) => ({ [properties.title]: properties.gridProperties.rowCount })))
+      lastColumns = parse(this.cache[key].map(({ properties }) => ({ [properties.title]: properties.gridProperties.columnCount })))
     }
 
     ranges = ranges
@@ -1698,7 +1720,7 @@ class SpreadsheetManipulation {
           }
           let startColumn = getColumnLetter(startColumnNum),
             result = `${range[0]}!${startColumn}${range[1] || lastRows[range[0]]}`
-          if (endColumnLocal) {
+          if (endColumnLocal != null) {
             const endColumnNum = typeof endColumnLocal === 'string' && endColumnLocal.length > 1
               ? (isLastHeader ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(endColumnLocal)
               : headers?.[sheet.indexOf(range[0])]?.indexOf(endColumnLocal)) + 1 : endColumnLocal || lastColumns[range[0]]
@@ -1740,11 +1762,14 @@ class SpreadsheetManipulation {
    * @return {GridRange}
    */
   toGridRange(sheet, range) {
+    let sheetName = sheet, sheetId = sheet
     if (typeof sheet === 'string')
-      sheet = this.sheetId[sheet]
+      sheetId = this.sheetId[sheet]
+    else
+      sheetName = this.sheetId.getKeyByValue(sheet)
     if (typeof range !== 'string')
-      range = this.processRange(range, { sheet })[0]
-    return editRange(range).toGrid(sheet)
+      range = this.processRange(range, { sheet: sheetName })[0]
+    return editRange(range).toGrid(sheetId)
   }
 
   /**

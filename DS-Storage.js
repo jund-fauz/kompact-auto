@@ -10,15 +10,22 @@ class Storage {
    * @return {MLObject|*|null}
    */
   get(...keys) {
-    const keysMLArray = MLArray.init(keys, { flatting: true }),
-      process = key => parse(this.storage.getProperty(key) ?? 'null')
-    return keysMLArray.mapToObject(key => ({ [key]: process(key) }))
+    const keysMLArray = MLArray.init(keys, { flatting: true })
+    let result = keysMLArray.mapToObject(key => ({
+      [key]: parse(this.storage.getProperty(key) ?? 'null')
+    }))
+    if (result.values().length > 1)
+      return result
+    result = result.values()[0]
+    if (isObject(result))
+      result = initObject(result)
+    return result
   }
 
   /**
    * @param {string|string[]|MLObject} keys
    * @param {Object|Object[]|null} values
-   * @return {Object}
+   * @return {Storage}
    */
   set(keys, values = null) {
     const process = (key, value) => {
@@ -26,52 +33,64 @@ class Storage {
       return { [key]: value }
     }
     if (typeof keys === 'string')
-      return process(keys, values)[keys]
-    if (values) {
+      process(keys, values)
+    else if (values) {
       if (keys.length !== values.length)
         throw Error('Panjang keys dan values tidak sama.')
-      return parse(keys.map((key, no) => process(key, values[no])))
-    }
-    return parse(keys.map(process))
+      keys.forEach((key, no) => process(key, values[no]))
+    } else
+      keys.forEach(process)
+    return this
   }
 
   /**
-   * @param {string|string[]} keys
-   * @param {Object|Object[]} values
-   * @param {Object} options
+   * @param {string|string[]|MLArray<string>} keys
+   * @param {*|*[]} values
+   * @param {{defaultWrapAs: object|array|null}} options
    * @return {Object}
    */
   add(keys, values, options = {}) {
-    const { defaultWrapAs = object } = options
-    keys = lazyWrap(keys)
+    const { defaultWrapAs = null } = options
+    keys = initArray(keys)
     values = lazyWrap(values)
     let currentDatas = this.get(keys)
-    keys.forEach((key, no) => {
+    if (!(currentDatas instanceof MLObject))
+      currentDatas = initObject({ [keys[0]]: currentDatas })
+    keys.iterate((key, no) => {
       if (isArray(currentDatas[key]))
         currentDatas[key].push(...values[no])
       else if (isObject(currentDatas[key]))
-        currentDatas[key] = { ...currentDatas[key], ...values[no] }
-      else
+        currentDatas.set(key, { ...currentDatas[key], ...values[no] })
+      else {
+        let data
         switch (defaultWrapAs) {
           case object:
-            currentDatas[key] = { [key]: values[no] }
+            data = { [key]: values[no] }
             break
           case array:
-            currentDatas[key] = wrap(values[no])
+            data = wrap(values[no])
             break
           default:
-            throw Error(`Tipe ${defaultWrapAs} invalid.`)
+            data = values[no]
+            break
         }
+        currentDatas.set(key, data)
+      }
     })
     return this.set(currentDatas)
   }
 
   /**
-   * @param {string[]} keys
+   * @param {string|string[]} keys
    */
-  remove(...keys) {
-    keys = flat(keys)
-    keys.forEach(key => this.storage.deleteProperty(key))
+  delete(...keys) {
+    initArray(keys, { flatting: true }).iterate(key => this.storage.deleteProperty(key))
+    return this
+  }
+
+  deleteAll() {
+    this.storage.deleteAllProperties()
+    return this
   }
 }
 

@@ -100,10 +100,10 @@ class MLArray extends Array {
 
   filter(predicate) {
     let writeIndex = 0
-    iterate(i => {
-      if (predicate(this[i], i, this))
-        this[writeIndex++] = this[i]
-    }, { from: 0, until: this.length, untilBefore: true })
+    this.iterate((data, index) => {
+      if (predicate(data, index, this))
+        this[writeIndex++] = data
+    })
     this.length = writeIndex
     return this
   }
@@ -132,7 +132,7 @@ class MLArray extends Array {
     if (this.some(isArray)) {
       const flattened = this.flat(Infinity)
       this.length = 0
-      iterate(i => this[i] = flattened[i], { from: 0, until: flattened.length, untilBefore: true })
+      flattened.iterate((data, i) => this[i] = data)
     }
     return this
   }
@@ -189,8 +189,8 @@ class MLArray extends Array {
     }
     if (typeof search !== 'function')
       search = lazyWrap(search)
-    iterate(index => {
-      let value = this[index]
+    this.iterate((data, index) => {
+      let value = data
       if (typeof value === 'string')
         value = value.trim()
       const isSame = typeof search === 'function'
@@ -203,7 +203,7 @@ class MLArray extends Array {
         firstRow = null
       } else if (isSame && firstRow == null)
         firstRow = currentRow
-    }, { from: 0, until: this.length, untilBefore: true })
+    })
     if (firstRow) rows.push([firstRow, currentRow])
     return rows
   }
@@ -237,9 +237,9 @@ class MLArray extends Array {
    */
   unique() {
     this.lazyFlat().deleteNull()
-    const uniqueCollection = [...new Set(this)]
+    const uniqueCollection = MLArray.init([...new Set(this)])
     this.length = 0
-    iterate(i => this[i] = uniqueCollection[i], { from: 0, until: uniqueCollection.length, untilBefore: true })
+    uniqueCollection.iterate((data, i) => this[i] = data)
     return this
   }
 
@@ -293,6 +293,13 @@ class MLArray extends Array {
     if (this.every(isArray))
       return MLObject.fromEntries(this)
     return MLObject.assign(this)
+  }
+
+  /**
+   * @param {function(T, number, MLArray<T>)} callbackFunc
+   */
+  iterate(callbackFunc) {
+    iterate(i => callbackFunc(this[i], i, this), { from: 0, until: this.length, untilBefore: true })
   }
 }
 

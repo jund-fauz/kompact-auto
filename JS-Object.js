@@ -13,7 +13,7 @@ class MLObject {
    */
   static assign(values) {
     const result = {}
-    iterate(i => Object.assign(result, values[i]), { until: values.length })
+    values.iterate(data => Object.assign(result, data))
     return new this(result)
   }
 
@@ -50,10 +50,10 @@ class MLObject {
 
   /**
    * @param {(key: string, value: T) => [string, T]|boolean} callbackFunc
-   * @return {Object<string,T>}
+   * @return {MLObject<string,T>}
    */
   reEntries(callbackFunc) {
-    return Object.fromEntries(this.map(callbackFunc))
+    return MLObject.fromEntries(this.map(callbackFunc))
   }
 
   /**
@@ -76,7 +76,7 @@ class MLObject {
    * @return {MLObject}
    */
   filter(func) {
-    return new MLObject(parse(this.entries().filter(([key, value]) => func(key, value))))
+    return MLObject.fromEntries(this.entries().immutableFilter(([key, value]) => func(key, value)))
   }
 
   /**
@@ -84,7 +84,7 @@ class MLObject {
    * @param {string|{isDeleteNull: boolean}} keys
    * @return {T|MLArray<T>}
    */
-  getValue(...keys) {
+  get(...keys) {
     const { isDeleteNull = false } = getOptions(keys),
       mLArrayKeys = MLArray.init(keys, { flatting: true })
     /**
@@ -132,12 +132,37 @@ class MLObject {
     return result.length > 1 ? result : result[0]
   }
 
-  delete(key) {
-    delete this.object[key]
-    delete this[key]
+  /**
+   * @param {string|string[]} keys
+   */
+  delete(...keys) {
+    initArray(keys, { flatting: true })
+      .iterate(key => {
+        delete this.object[key]
+        delete this[key]
+      })
+    return this.reset()
+  }
+
+  reset() {
     this.entriesVersion = null
     this.keysVersion = []
     this.valuesVersion = []
+    return this
+  }
+
+  /**
+   * @param {string|string[]|MLArray<string>|MLObject<string, T>} keys
+   * @param {T|T[]|MLArray<T>|null} values
+   */
+  set(keys, values = null) {
+    if (keys instanceof MLObject)
+      keys.forEach((key, value) => this.object[key] = this[key] = value)
+    else {
+      [keys, values] = [initArray(keys), initArray(values)]
+      keys.iterate((data, no) => this.object[data] = this[data] = values[no])
+    }
+    return this.reset()
   }
 }
 

@@ -1,4 +1,73 @@
 // Manipulasi untuk spreadsheet tahunan
+
+class MLDate extends Date {
+  constructor(...values) {
+    if (values.length)
+      super(...values)
+    else
+      super()
+    this.date = super.getDate()
+    this.month = this.getMonth()
+    this.shortMonth = shortMonths.get(this.month)
+    this.longMonth = longMonths.get(this.month)
+    this.year = super.getFullYear()
+  }
+
+  getMonth() {
+    return super.getMonth() + 1
+  }
+
+  /**
+   * @param month
+   * @param {number|null} date
+   * @return {MLDate}
+   */
+  setMonth(month, date = null) {
+    month--
+    if (date)
+      super.setMonth(month, date)
+    else
+      super.setMonth(month)
+    this.month = this.getMonth()
+    this.shortMonth = shortMonths.get(this.month)
+    this.longMonth = longMonths.get(this.month)
+    return this
+  }
+
+  /**
+   * @param date
+   * @return {MLDate}
+   */
+  setDate(date) {
+    super.setDate(date)
+    this.date = super.getDate()
+    return this
+  }
+
+  lastMonth() {
+    return new MLDate(this.getTime()).setDate(1).setMonth(this.getMonth() - 1)
+  }
+
+  nextMonth() {
+    return new MLDate(this.getTime()).setDate(1).setMonth(this.getMonth() + 1)
+  }
+
+  format(format) {
+    return Utilities.formatDate(this, 'Asia/Jakarta', format)
+  }
+}
+
+/**
+ * @param {number|string|Date|MLDate} value
+ * @return {MLDate}
+ */
+function initDate(...value) {
+  if (value.length)
+    return new MLDate(...value)
+  else
+    return new MLDate()
+}
+
 /** @type {MLArray<string>} */
 var shortMonths = MLArray.init([
   'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
@@ -26,26 +95,15 @@ function formatDate(options = {}) {
     format
   )
 }
-/**
- * @return {Object}
- */
+
 function getCurrentDate() {
-  const today = new Date()
+  const today = new MLDate()
   return {
     day: today.getDay(),
     date: today.getDate(),
     month: today.getMonth(),
     year: today.getFullYear()
   }
-}
-
-/**
- * Mengambil nomor bulan menggunakan basis satu
- * @param {Date} date
- * @return {number}
- */
-function getMonth(date) {
-  return date.getMonth() + 1
 }
 
 /**
