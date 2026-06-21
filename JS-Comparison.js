@@ -66,19 +66,28 @@ function notSameWith(value, ...arr) {
 /**
  * Membandingkan 3 value dengan prinsip "Between And"
  * @param {number} start
- * @param {number} value
+ * @param {number|number[]} value
  * @param {number} until
- * @param {string} compare
+ * @param {string|string[]} compare
  * @return {boolean}
  */
 function between(start, value, until, compare = '<') {
-  [start, value, until] = [start ?? 0, value ?? 0, until ?? 0]
-  switch (compare) {
-    case '<':
-      return (start < value) && (value < until)
-    case '<=':
-      return (start <= value) && (value <= until)
-  }
+  [start, value, until] = [start ?? 0, lazyWrap(value).map(value => value ?? 0), until ?? 0]
+  compare = lazyWrap(compare)
+  if (value.length !== compare.length && value.length === 1)
+    value = repeat(value[0], compare.length)
+  return compare.every((compare, no) => {
+    switch (compare) {
+      case '<':
+        return (start < value[no]) && (value[no] < until)
+      case '<=':
+        return (start <= value[no]) && (value[no] <= until)
+      case '<=<':
+        return (start <= value[no]) && (value[no] < until)
+      case '<<=':
+        return (start < value[no]) && (value[no] <= until)
+    }
+  })
 }
 
 /**

@@ -56,11 +56,11 @@ var ui = () => SpreadsheetApp.getUi(),
     },
     RowNumber: /[0-9]+$/,
     Importrange: {
-      SsId: /(IMPORTRANGE\s*\(\s*["'])([^"']*)(["']\s*,)/gi,
+      SpreadsheetId: /(IMPORTRANGE\s*\(\s*["'])([^"']*)(["']\s*,)/gi,
       Range: /(IMPORTRANGE\s*\(\s*["'][^"']*["']\s*,\s*["'])([^"']*)(["']\s*\))/gi
     },
     Invoice: /^[a-zA-Z]+[-_]\d+/,
-    AllCharacterWithoutFormula: /(?s)^.*/
+    AllCharacterWithoutFormula: '(?s)^[^=].*'
   }),
 
   /** #Sheets API */
@@ -98,4 +98,11 @@ var ui = () => SpreadsheetApp.getUi(),
     B: 'BLANK',
     NB: 'NOT_BLANK',
     E: 'ERROR',
-  })
+  }),
+
+  /** Pengkategorian Spreadsheet */
+  Lm = ['ANTAM', 'EK', 'EKU', 'SG', 'HA', 'TEMBAGA', 'LM CAMPUR', 'LM VALENT', 'PERAK', 'PERAK STARSILVER', 'CT'],
+  Cabang = ['JKT', 'SMG', 'SBY'],
+  Divisi = ['CT', 'LM'],
+  CabangStargold = ['KRANGGAN', 'MAG', 'ROYAL'],
+  Uang = [...Cabang, 'LM']

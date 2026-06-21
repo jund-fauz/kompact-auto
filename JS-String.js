@@ -1,71 +1,88 @@
-/**
- * @param {string} string
- * @return {string}
- */
-function toCamelCase(string) {
-  if (string.length === 1 && string.match(/[^a-zA-Z0-9]+(.)/g).length)
-    return string
-  return string
-    .toLowerCase()
-    .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
-    .replace(/^[A-Z]/, (char) => char.toLowerCase())
-    .replace(/[\W]+/, '')
-}
-
 var Capitalize = 'capitalize',
   LowerCase = 'lowercase',
   UpperCase = 'uppercase'
 
-/**
- * @param {string} string
- * @param {Capitalize|LowerCase|UpperCase|string} mode
- * @return {string}
- */
-function normalizeFromCamelCase(string, mode = Capitalize) {
-  const result = string.replace(/[A-Z]/, ' $1')
-  switch (mode) {
-    case Capitalize:
-      return capitalize(result)
-    case LowerCase:
-      return result.toLowerCase()
-    case UpperCase:
-      return result.toUpperCase()
+class MLString extends String {
+  toJSON() {
+    return this.toString()
+  }
+
+  /**
+   * @return {string}
+   */
+  toCamelCase() {
+    if (this.length === 1 && this.match(/[^a-zA-Z0-9]+(.)/g).length)
+      return this
+    return this
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
+      .replace(/^[A-Z]/, (char) => char.toLowerCase())
+      .replace(/\W+/, '')
+  }
+
+  /**
+   * @param {Capitalize|LowerCase|UpperCase|string} mode
+   * @return {string}
+   */
+  normalizeFromCamelCase(mode = Capitalize) {
+    const result = this.replace(/[A-Z]/, ' $1')
+    switch (mode) {
+      case Capitalize:
+        return this.capitalize(result)
+      case LowerCase:
+        return result.toLowerCase()
+      case UpperCase:
+        return result.toUpperCase()
+    }
+  }
+
+  /**
+   * @return {string}
+   */
+  capitalize() {
+    return this[0].toUpperCase() + this.slice(1).toLowerCase()
+  }
+
+  /**
+   * Mengecek apakah suatu teks ada di dalam teks lain
+   * @param {string[]} searchValues
+   * @return {boolean}
+   */
+  includes(...searchValues) {
+    return flat(searchValues).every(searchValue => super.includes(searchValue))
+  }
+
+  /**
+   * @param {string[]} searchValues
+   * @return {boolean}
+   */
+  endWith(...searchValues) {
+    const { logic = And } = getOptions(searchValues),
+      process = searchValue => this.endsWith(searchValue)
+    return logic === And
+      ? flat(searchValues).every(process)
+      : flat(searchValues).some(process)
+  }
+
+  /**
+   * @param {number} digitCount
+   * @return {string}
+   */
+  formatNumber(digitCount = 2) {
+    return this.padStart(digitCount, '0')
   }
 }
 
 /**
- * @param {string} string
- * @return {string}
+ * @param {*} value
+ * @return {MLString}
  */
-function capitalize(string) {
-  return string[0].toUpperCase() + string.slice(1).toLowerCase()
+function initString(value) {
+  return new MLString(value)
 }
 
 /**
- * Mengecek apakah suatu teks ada di dalam teks lain
- * @param {string} value
- * @param {string[]} searchValues
- * @return {boolean}
- */
-function includes(value, ...searchValues) {
-  return flat(searchValues).every(searchValue => value.includes(searchValue))
-}
-
-/**
- * @param {string} value
- * @param {string[]} searchValues
- * @return {boolean}
- */
-function endWith(value, ...searchValues) {
-  const { logic = And } = getOptions(searchValues),
-    process = searchValue => value.endsWith(searchValue)
-  return logic === And
-    ? flat(searchValues).every(process)
-    : flat(searchValues).some(process)
-}
-
-/**
- * @param {number|string} number
+ * @param {number} number
  * @param {number} digitCount
  * @return {string}
  */

@@ -8,8 +8,8 @@ class MLDate extends Date {
       super()
     this.date = super.getDate()
     this.month = this.getMonth()
-    this.shortMonth = shortMonths.get(this.month)
-    this.longMonth = longMonths.get(this.month)
+    this.shortMonth = initString(shortMonths.get(this.month))
+    this.longMonth = initString(longMonths.get(this.month))
     this.year = super.getFullYear()
   }
 
@@ -29,8 +29,8 @@ class MLDate extends Date {
     else
       super.setMonth(month)
     this.month = this.getMonth()
-    this.shortMonth = shortMonths.get(this.month)
-    this.longMonth = longMonths.get(this.month)
+    this.shortMonth = initString(shortMonths.get(this.month))
+    this.longMonth = initString(longMonths.get(this.month))
     return this
   }
 

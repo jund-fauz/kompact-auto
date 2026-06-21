@@ -14,8 +14,7 @@ class MLArray extends Array {
    */
   static init(array, options = {}) {
     const { flatting = false, deleteNull = false, unique = false, withLog = false } = options
-    array = lazyWrap(array)
-    let result = this.from(array)
+    let result = this.from(lazyWrap(array))
     result.batchSize = 50000
     if (flatting)
       result.lazyFlat()
@@ -362,7 +361,7 @@ function getOptions(array) {
  * @return {Array<T>}
  */
 function wrap(value, dimension = 1) {
-  iterate(() => value = [value], { until: dimension - 1 })
+  iterate(() => value = [value], { until: dimension })
   return value
 }
 
@@ -372,7 +371,7 @@ function wrap(value, dimension = 1) {
  * @return {T[]}
  */
 function lazyWrap(value) {
-  if (typeof value !== 'string' && isIterable(value)) return value
+  if (typeof value !== 'string' && !(value instanceof String) && isIterable(value)) return value
   return wrap(value)
 }
 

@@ -8,7 +8,7 @@ function iterate(func, options = {}) {
   let { from = 1, until = 1 } = options
   if (from > until && until === 1)
     until = from
-  const { untilBefore = false, addition = 1, withReturnValue = func(from++) } = options,
+  const { untilBefore = false, addition = 1, withReturnValue = func((from += addition) - addition) } = options,
     result = [withReturnValue]
   for (let i = from; i <= (until - untilBefore); i += addition) {
     if (withReturnValue)

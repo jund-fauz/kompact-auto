@@ -268,7 +268,7 @@ function syncRoles(spreadsheetSourceId, spreadsheetTargetId, asViewer = false) {
     fields: 'permissions(emailAddress)',
     supportsAllDrives: true
   }).permissions, { withReturnValue: true, waitingInSec: 2 }) || [], existingMap = new Map()
-  existingPermissions.forEach(perm => existingMap.set((perm.emailAddress || perm.type).toLowerCase(), perm.role))
+  existingPermissions.forEach(perm => (perm.emailAddress || perm.type) && existingMap.set((perm.emailAddress || perm.type).toLowerCase(), perm.role))
 
   Drive.Permissions.list(spreadsheetSourceId, {
     fields: 'permissions(emailAddress, role, type, domain)',
