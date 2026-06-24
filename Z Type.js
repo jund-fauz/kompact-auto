@@ -79,6 +79,9 @@ var ui = () => SpreadsheetApp.getUi(),
   PasteNormal = 'PASTE_NORMAL',
   PasteFormat = 'PASTE_FORMAT',
   PasteFormula = 'PASTE_FORMULA',
+  PasteDataValidation = 'PASTE_DATA_VALIDATION',
+  PasteConditionalFormatting = 'PASTE_CONDITIONAL_FORMATTING',
+  PasteNoBorders = 'PASTE_NO_BORDERS'
 
   /** MergeType */
   MergeAll = 'MERGE_ALL',

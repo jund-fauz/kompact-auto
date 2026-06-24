@@ -7,9 +7,10 @@
  *   isLastHeader?: boolean,
  *   rowCount?: number,
  *   columnCount?: number,
- *   headerRow?: number
+ *   headerRow?: number,
+ *   headerOrder?: number
  *  }} RangeOptions
- *  @typedef {[number,string|number,RangeOptions?]|string|string[]} RawRange
+ *  @typedef {[number,string|number,RangeOptions?]|[number,string|number,RangeOptions?][]|string|string[]} RawRange
  *  @typedef {PasteNormal|PasteFormula|PasteFormat|string} PasteType
  *  @typedef {Formatted|Unformatted|Formula|string} ValueRenderOption
  *  @typedef {Horizontal|Vertical|string} Stack
@@ -23,7 +24,8 @@
  *  stack?: Stack,
  *  vro?: ValueRenderOption,
  *  fillEmpty?: boolean,
- *  withHeader?: boolean
+ *  withHeader?: boolean,
+ *  sheet?: SheetType
  * }} ValuesOption
  * @typedef {{
  *   requests?: MLArray<Object>,
@@ -33,7 +35,8 @@
  *   batch?: number,
  *   withoutRetry?: boolean,
  *   afterRun?: function,
- *   withLog?: boolean
+ *   withLog?: boolean,
+ *   headerRow?: Object<string,number>
  * }} SpreadsheetManipulationOptions
  * @typedef {{except?: SheetType, includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} ProcessRangeOptions
  */
@@ -54,9 +57,9 @@ class SpreadsheetManipulation {
       batch = 1000,
       withoutRetry = false,
       afterRun = null,
-      withLog = true
+      withLog = true,
+      headerRow = {}
     } = options
-    /** @type {Object[]} */
     this.requests = MLArray.init(requests ?? [])
     this.valueRequests = MLArray.init(valueRequests ?? [])
     this.emptyValueRequests = MLArray.init([])
@@ -68,10 +71,10 @@ class SpreadsheetManipulation {
     this.withoutRetry = withoutRetry
     this.withLog = withLog
     this.vio = UserEntered
-    this.headerRow = {}
+    this.headerRow = headerRow
     /** @type {ValuesOption} */
     this.valuesOption = {}
-    /** @type {{ activeSheet: SpreadsheetApp.Sheet, timezone: string }} */
+    /** @type {{ activeSheet: SpreadsheetApp.Sheet, timezone: string, namedRanges: GoogleAppsScript.Sheets.Schema.NamedRange[] }} */
     this.cache = {}
     this.updateValueFirst = false
     /** @type {number|null} */
@@ -195,7 +198,7 @@ class SpreadsheetManipulation {
 
   /**
    * Wrapper Sheets.Spreadsheets.get dengan parameter fields dan ranges, mendukung opsi sheet filter.
-   * @param {{ranges?: RawRange|RawRange[], sheet?: SheetType|null, [key: string]: any}} optionParams
+   * @param {{ranges?: RawRange, sheet?: SheetType|null, fields: string}} optionParams
    * @return {GoogleAppsScript.Sheets.Schema.Spreadsheet}
    */
   get(optionParams = {}) {
@@ -219,8 +222,8 @@ class SpreadsheetManipulation {
    * @return {MLArray<string>}
    */
   headers(options = {}) {
-    const { headerRow = this.headerRow[this.sheet[0]] ?? 1, unshiftCounts = 1, sheet = this.sheet[0] } = options
-    const cacheKey = `${this.spreadsheetId}_${sheet}_${headerRow}`,
+    const { headerRow = this.headerRow[this.sheet[0]] ?? 1, unshiftCounts = 1, sheet = this.sheet[0] } = options,
+      cacheKey = `${this.spreadsheetId}_${sheet}_${headerRow}`,
       cache = getGlobalCache()
     if (!cache.headers[cacheKey])
       addToGlobalCache(
@@ -228,10 +231,19 @@ class SpreadsheetManipulation {
         cacheKey,
         this.values(`${headerRow}:${headerRow}`, { fillEmpty: false, sheet })
       )
-    const headers = [...cache.headers[cacheKey]]
-    const unshiftArr = Array.from({ length: unshiftCounts }, () => '')
+    const headers = [...cache.headers[cacheKey]],
+      unshiftArr = Array.from({ length: unshiftCounts }, () => '')
     headers.unshift(...unshiftArr)
     return MLArray.init(headers)
+  }
+
+  /**
+   * @return {GoogleAppsScript.Sheets.Schema.NamedRange[]}
+   */
+  namedRanges() {
+    if (!this.cache.namedRanges)
+      this.cache.namedRanges = this.get({ fields: 'namedRanges' }).namedRanges
+    return this.cache.namedRanges
   }
 
   /**
@@ -245,20 +257,22 @@ class SpreadsheetManipulation {
    *    unshiftCounts?: number,
    *    withHeader?: boolean,
    *    prefix?: string,
+   *    lastHeaderPrefix?: string,
    *    sheet?: string
    *   }} options
    * @return {string|string[]|number|number[]|MLObject}
    */
   column(columnName, options = {}) {
     const {
-      headerRow = this.headerRow[this.sheet[0]] ?? 1,
-      isLastHeader = false,
-      isLetter = false,
-      unshiftCounts = 1,
-      withHeader = false,
-      prefix = '',
-      sheet = this.sheet[0]
-    } = options,
+        headerRow = this.headerRow[this.sheet[0]] ?? 1,
+        isLastHeader = false,
+        isLetter = false,
+        unshiftCounts = 1,
+        withHeader = false,
+        prefix = '',
+        lastHeaderPrefix = '',
+        sheet = this.sheet[0]
+      } = options,
       headers = this.headers({ headerRow, sheet, unshiftCounts }),
       cols = []
     columnName = lazyWrap(columnName)
@@ -270,9 +284,11 @@ class SpreadsheetManipulation {
       const col = isLetter ? getColumnLetter(colNum) : colNum
       if (withHeader) {
         column = column.toLowerCase()
-        if (prefix)
+        if (prefix && !isLastHeader)
           column = prefix + ' ' + column
-        result[toCamelCase(column)] = col
+        if (lastHeaderPrefix && isLastHeader)
+          column = lastHeaderPrefix + ' ' + column
+        result[initString(column).toCamelCase()] = col
       } else
         cols.push(col)
     }
@@ -329,7 +345,7 @@ class SpreadsheetManipulation {
 
   /**
    * Mengambil satu nilai tunggal dari range menggunakan Sheets.Values.get, return undefined jika kosong.
-   * @param {RawRange|RawRange[]} ranges
+   * @param {RawRange} ranges
    * @param {{vro?: ValueRenderOption, sheet?: string}|Object} options
    * @return {undefined|any}
    */
@@ -337,7 +353,7 @@ class SpreadsheetManipulation {
     const { vro = Formatted, sheet = this.sheet[0], ...optionsForAPI } = options
     ranges = this.processRange(ranges, { includeInvalid: true, sheet })[0]
     if (ranges.endsWith('#SKIP#'))
-      return this
+      return undefined
     let values = spreadsheet.Values.get(this.spreadsheetId, ranges, { ...optionsForAPI, valueRenderOption: vro }).values
     if (values)
       values = values.flat(2)
@@ -347,7 +363,7 @@ class SpreadsheetManipulation {
   /**
    * Mengambil data multi-range dengan batchGet, mendukung stack Horizontal/Vertical, filter, dateFormat, withHeader, dan notFiltered.
    * @template T
-   * @param {RawRange|RawRange[]} ranges
+   * @param {RawRange} ranges
    * @param {ValuesOption} options
    * @return {MLArray<T>|MLArray<T[]>|MLObject|{[key: string]: MLArray<T>}}
    */
@@ -356,17 +372,17 @@ class SpreadsheetManipulation {
     if (!ranges.some(isArray))
       ranges = wrap(ranges)
     const {
-      isAll = false,
-      notFiltered = false,
-      filterViewName = null,
-      withRows = false,
-      dateFormat = '',
-      stack = Horizontal,
-      vro = Formatted,
-      fillEmpty = true,
-      withHeader = false,
-      ...rest
-    } = isEmpty(options) ? this.valuesOption : options,
+        isAll = false,
+        notFiltered = false,
+        filterViewName = null,
+        withRows = false,
+        dateFormat = '',
+        stack = Horizontal,
+        vro = Formatted,
+        fillEmpty = true,
+        withHeader = false,
+        ...rest
+      } = isEmpty(options) ? this.valuesOption : options,
       /**
        * @template T
        * @param {T[][]} vals
@@ -595,10 +611,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   duplicateSheet(newName) {
-    const {
-      title,
-      sheetId
-    } = spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, this.sheetId.values()[0]),
+    const { sheetId } = spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, this.sheetId.values()[0]),
       cache = getGlobalCache()[CacheType.SheetIds][this.spreadsheetId]
     if (cache)
       cache[newName] = sheetId
@@ -651,11 +664,11 @@ class SpreadsheetManipulation {
    */
   search(startRowOrRow, startColumnOrColumn, searchValues, type, options = {}) {
     const {
-      sheet = this.sheet[0],
-      headerRow = this.headerRow[sheet] ?? 1,
-      isLastHeader = false,
-      defaultValue = 0
-    } = options,
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1,
+        isLastHeader = false,
+        defaultValue = 0
+      } = options,
       /** @type {RangeOptions} */
       optionsForRange = {
         headerRow,
@@ -689,7 +702,7 @@ class SpreadsheetManipulation {
 
   /**
    * Menambahkan request mergeCells pada range yang diproses ke seluruh sheet target.
-   * @param {RawRange|RawRange[]} range
+   * @param {RawRange} range
    * @param {string} type MergeType
    * @return {SpreadsheetManipulation}
    */
@@ -706,7 +719,7 @@ class SpreadsheetManipulation {
 
   /**
    * Mengatur warna teks foreground pada range, mendukung input hex string atau objek RGB.
-   * @param {RawRange|RawRange[]} range
+   * @param {RawRange} range
    * @param {string|Object} color
    * @return {SpreadsheetManipulation}
    */
@@ -749,7 +762,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   resize(column, sizeInPixel) {
-    if (typeof column === 'string')
+    if (isString(column))
       column = getColumnNum(column)
     return this.addRequests(
       this.sheetId.values().map(sheetId => ({
@@ -771,7 +784,7 @@ class SpreadsheetManipulation {
 
   /**
    * Menambahkan request autoFill pada range untuk mengisi pola data secara otomatis.
-   * @param {RawRange|RawRange[]} range
+   * @param {RawRange} range
    * @return {SpreadsheetManipulation}
    */
   autoFill(range) {
@@ -789,7 +802,7 @@ class SpreadsheetManipulation {
    * @param {{
    *  find?: string,
    *  replace?: string,
-   *  range?: RawRange|RawRange[],
+   *  range?: RawRange,
    *  matchEntire?: boolean,
    *  matchCase?: boolean,
    *  regex?: boolean,
@@ -848,7 +861,7 @@ class SpreadsheetManipulation {
   /**
    * Menghapus sheet, proteksi, baris, atau kolom berdasarkan tipe dengan opsi include/except filter.
    * @param {Row|Column|Sheet|Protection|string} type
-   * @param {{include?: number, except?: number, number?: number|number[], key?: number, range?: RawRange|RawRange[]}} options
+   * @param {{include?: number, except?: number, number?: number|number[], key?: number, range?: RawRange}} options
    * @return {SpreadsheetManipulation}
    */
   delete(type, options = {}) {
@@ -918,9 +931,9 @@ class SpreadsheetManipulation {
   /**
    * Menyalin range dari sourceSheet ke targetSheet dengan pasteType tertentu (format/formula/normal).
    * @param {string} sourceSheet
-   * @param {RawRange|RawRange[]} range
+   * @param {RawRange} range
    * @param {PasteType} pasteType
-   * @param {{targetSheet?: string|string[], targetRange?: RawRange|RawRange[]}} options
+   * @param {{targetSheet?: string|string[], targetRange?: RawRange}} options
    * @return {SpreadsheetManipulation}
    */
   copyPaste(sourceSheet, range, pasteType, options = {}) {
@@ -939,7 +952,7 @@ class SpreadsheetManipulation {
 
   /**
    * Mengatur format tanggal pada range via repeatCell numberFormat request ke seluruh sheetId target.
-   * @param {RawRange|RawRange[]} range
+   * @param {RawRange} range
    * @param {string} format
    * @return {SpreadsheetManipulation}
    */
@@ -1020,7 +1033,7 @@ class SpreadsheetManipulation {
   insertAfter(columnOrRow, type, options = {}) {
     if (notSameWith(type, Column, Row))
       throw Error(`Tipe ${type} tidak valid`)
-    if (typeof columnOrRow === 'string')
+    if (isString(columnOrRow))
       if (type === Column)
         columnOrRow = getColumnNum(columnOrRow)
       else throw Error(`Baris ${columnOrRow} tidak valid`)
@@ -1042,7 +1055,7 @@ class SpreadsheetManipulation {
 
   /**
    * Menyisipkan cell baru pada range dengan shiftDimension Column atau Row.
-   * @param {RawRange|RawRange[]} range
+   * @param {RawRange} range
    * @param {Column|Row|string} type
    * @return {SpreadsheetManipulation}
    */
@@ -1089,13 +1102,13 @@ class SpreadsheetManipulation {
         throw Error('Minimal 2 kolom untuk di-sort dengan posisi kosong di atas menggunakan array. Jika ingin menggunakan 1 kolom, masukkan sebagai string biasa.')
 
     const {
-      startRow = 2,
-      isAscending = true,
-      ascendingSortCol = null,
-      hideProcessed = false,
-      sheet = this.sheet[0],
-      headerRow = this.headerRow[sheet] ?? 1
-    } = options,
+        startRow = 2,
+        isAscending = true,
+        ascendingSortCol = null,
+        hideProcessed = false,
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1
+      } = options,
       headers = this.headers({ headerRow }),
       helperColName = 'FILTER HELPER',
       beforeEmptyRow = this.search(startRow, notEmptyColumnTitle, '', Row) - 1,
@@ -1162,10 +1175,10 @@ class SpreadsheetManipulation {
         setBasicFilter: {
           filter: {
             range: this.toGridRange(sheet, [startRow - 1, startColumnTitle, {
-              untilLastRow: true,
-              headerRow,
-              endColumn: endColumnTitle
-            }]
+                untilLastRow: true,
+                headerRow,
+                endColumn: endColumnTitle
+              }]
             ),
             criteria: isArray(sortByColumnTitle)
               ? Object.assign({}, ...sortByColumnTitle.map(filterCriteria))
@@ -1198,7 +1211,7 @@ class SpreadsheetManipulation {
     }
     ranges = this.processRange(ranges)
     const columnObject = this.sheet.mapToObject(sheet => ({
-      [this.sheetId[sheet]]: typeof column === 'string' ? this.column(column, {
+      [this.sheetId[sheet]]: isString(column) ? this.column(column, {
         ...rangeOptions,
         sheet
       }) : column
@@ -1241,8 +1254,8 @@ class SpreadsheetManipulation {
    *  description?: string,
    *  editors?: string|string[],
    *  deleteOldProtection?: boolean,
-   *  range?: RawRange|RawRange[],
-   *  unprotectedRange?: RawRange|RawRange[]
+   *  range?: RawRange,
+   *  unprotectedRange?: RawRange
    * }} options
    * @return {SpreadsheetManipulation}
    */
@@ -1335,7 +1348,7 @@ class SpreadsheetManipulation {
 
   /**
    * Mengosongkan nilai pada range menggunakan batchClear via addEmptyValueRequests.
-   * @param {RawRange|RawRange[]} ranges
+   * @param {RawRange} ranges
    * @param {ProcessRangeOptions} options
    * @return {SpreadsheetManipulation}
    */
@@ -1355,16 +1368,17 @@ class SpreadsheetManipulation {
 
   /**
    * Menulis satu nilai ke satu atau banyak range, mendukung function callback untuk dynamic values.
-   * @param {RawRange|RawRange[]} ranges
+   * @param {RawRange} ranges
    * @param {Object|Object[]|Object[][]|Function} values
-   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean, isRaw?: boolean}} options
    * @return {SpreadsheetManipulation}
    */
   setValue(ranges, values, options = {}) {
     const isValuesArray = isArray(values)
     if (this.isRangesAnArray(ranges) && isTypeOf('string', ...ranges) && isValuesArray && ranges.length !== values.length)
       throw Error('Jumlah value dan range yang dimasukkan sebagai parameter tidak sama.')
-    ranges = this.processRange(ranges, options)
+    const { isRaw = false, ...rest } = options
+    ranges = this.processRange(ranges, rest)
     const isValues2d = isValuesArray && values.every(isArray)
     let currentNo = 0, currentSheet = null
     if (this.withLog)
@@ -1608,20 +1622,20 @@ class SpreadsheetManipulation {
    */
   deleteInvalidRequest() {
     if (this.requests.length)
-      this.requests.filter(req => isObject(req) && Object.keys(req).length)
+      this.requests = trim(this.requests.filter(req => isObject(req) && Object.keys(req).length))
     if (this.valueRequests.length)
-      this.valueRequests.filter(req => isObject(req) && Object.keys(req).length)
+      this.valueRequests = trim(this.valueRequests.filter(req => isObject(req) && Object.keys(req).length))
     if (this.emptyValueRequests.length)
-      this.emptyValueRequests.filter(req => typeof req === 'string')
+      this.emptyValueRequests = trim(this.emptyValueRequests.filter(req => isString(req)))
   }
 
   processSheet(sheet, except) {
-    if (typeof sheet === 'string')
+    if (isString(sheet))
       sheet = initArray(sheet.split(', '))
     if (typeof sheet === 'number' || (isArray(sheet) && isTypeOf('number', sheet)))
       sheet = initArray(sheet).map(sheet => sheet.toString())
     if (except) {
-      if (typeof except === 'string')
+      if (isString(except))
         except = initArray(except.split(', '))
       sheet = sheet.immutableFilter(sheet => !except.includes(sheet))
     }
@@ -1630,17 +1644,30 @@ class SpreadsheetManipulation {
 
   /**
    * Mengonversi RawRange input (array/string/object) menjadi array A1N string lengkap dengan sheet prefix.
-   * @param {RawRange|RawRange[]} ranges
+   * @param {RawRange} ranges
    * @param {ProcessRangeOptions} options
    * @return {string[]}
    */
   processRange(ranges, options = {}) {
-    let { except = null, includeInvalid = false, sheet = this.sheet, withoutSheet = false } = options
-    sheet = this.processSheet(sheet, except)
     ranges = lazyWrap(ranges)
+    let {
+      except = null,
+      includeInvalid = false,
+      sheet = this.sheet,
+      withoutSheet = false
+    } = options
+    sheet = this.processSheet(sheet, except)
 
     if (isTypeOf('string', ranges)) {
       if (withoutSheet) return ranges
+      ranges = ranges.map(/** @param {string} range */range => {
+        if (isString(range) && /[^A-Z:!\d]/.test(range)) {
+          /** @type {GridRange} */
+          const namedRange = this.namedRanges()?.find(namedRange => namedRange.name === range)?.range
+          range = namedRange ? toA1Notation(this.sheetId.getKeyByValue(namedRange.sheetId), namedRange) : '#SKIP#'
+        }
+        return range
+      })
       return sheet.flatMap(sheet =>
         ranges.map(range =>
           range?.includes('!')
@@ -1668,8 +1695,11 @@ class SpreadsheetManipulation {
       })
     )
 
-    let headers, lastRows, lastColumns
-    if (ranges.some(range => (isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) || range[2] instanceof String || range.at(-1).endColumn instanceof String) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
+    let
+      /** @type {MLArray[]} */
+      headers,
+      lastRows, lastColumns
+    if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
       const cacheKey = `${this.spreadsheetId}_${sheet}_mix_${this.headerRow[sheet] ?? ranges[0].at(-1).headerRow ?? 1}`,
         cache = getGlobalCache()
       if (!cache.headers[cacheKey]) {
@@ -1686,7 +1716,7 @@ class SpreadsheetManipulation {
           })
         )
       }
-      headers = cache[CacheType.Header][cacheKey]
+      headers = cache[CacheType.Header][cacheKey].map(array => initArray(array))
     }
 
     if (ranges.some(range => sameWith(0, range[1], range[2], range.at(-1).endRow, range.at(-1).endColumn, {
@@ -1706,13 +1736,14 @@ class SpreadsheetManipulation {
           Logger.log(range)
         const options = range.at(-1)
         let {
-          endColumn = null,
-          endRow = null,
-          untilLastRow = false,
-          isLastHeader = false,
-          rowCount = null,
-          columnCount = null
-        } = isObject(options) ? options : {},
+            endColumn = null,
+            endRow = null,
+            untilLastRow = false,
+            isLastHeader = false,
+            rowCount = null,
+            columnCount = null,
+            headerOrder = 1
+          } = isObject(options) ? options : {},
           startColumn = range[2]
         if (isAllArray(startColumn, endColumn) && startColumn?.length < endColumn?.length)
           throw Error(`Tidak valid. Jumlah endColumns lebih banyak dari startColumns.`)
@@ -1726,12 +1757,10 @@ class SpreadsheetManipulation {
         const process = (column, no) => {
           if (column instanceof String)
             column = column.toString()
-          Logger.log("Isi Headers: " + JSON.stringify(headers))
-          Logger.log("Mencari kolom: " + column)
           const startColumnNum = typeof column === 'string' && column.length > 1
             ? (isLastHeader
-              ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(column)
-              : headers?.[sheet.indexOf(range[0])]?.indexOf(column)) + 1
+            ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(column)
+            : headers?.[sheet.indexOf(range[0])]?.findIndexInOrder(column, headerOrder)) + 1
             : column || lastColumns[range[0]]
           if (!startColumnNum) {
             Logger.log(`Sheet ${range[0]} tidak memiliki kolom ${column}. Range dilewati`)
@@ -1745,8 +1774,8 @@ class SpreadsheetManipulation {
               endColumnLocal = endColumnLocal.toString()
             const endColumnNum = typeof endColumnLocal === 'string' && endColumnLocal.length > 1
               ? (isLastHeader
-                ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(endColumnLocal)
-                : headers?.[sheet.indexOf(range[0])]?.indexOf(endColumnLocal)) + 1
+              ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(endColumnLocal)
+              : headers?.[sheet.indexOf(range[0])]?.findIndexInOrder(endColumnLocal, headerOrder)) + 1
               : endColumnLocal || lastColumns[range[0]]
             if (!endColumnNum) {
               Logger.log(`Sheet ${range[0]} tidak memiliki kolom ${endColumnLocal}. Range dilewati`)
@@ -1787,11 +1816,11 @@ class SpreadsheetManipulation {
    */
   toGridRange(sheet, range) {
     let sheetName = sheet, sheetId = sheet
-    if (typeof sheet === 'string')
+    if (isString(sheetName))
       sheetId = this.sheetId[sheet]
     else
       sheetName = this.sheetId.getKeyByValue(sheet)
-    if (typeof range !== 'string')
+    if (!isString(range))
       range = this.processRange(range, { sheet: sheetName })[0]
     return editRange(range).toGrid(sheetId)
   }

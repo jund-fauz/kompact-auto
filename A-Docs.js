@@ -16,6 +16,9 @@
  *  - Parameter dideklarasikan tipe nya menggunakan JSDoc.
  *  - Maksimal jumlah parameter yang wajib diisi adalah 3. Lebih dari itu dibungkus menggunakan parameter 'options' berbentuk objek.
  *  - Parameter bisa memiliki nilai default berupa nilai yang sering dipakai
+ * E. Penamaan Deployment
+ *  - Deployment diisi dengan kegunaannya di skrip apa
+ *  - Perubahan / update kode cukup ditulis di git commit saja
  */
 
 /*
@@ -88,7 +91,7 @@
      - syncRoles (memanggil: retry)
      - templating (memanggil: isObject)
      - toA1Notation (memanggil: getColumnLetter, test)
-     - toJSDate (memanggil: isDate)
+     - toMLDate (memanggil: isDate)
      - parse (memanggil: isAllArray)
      - trim (memanggil: isObject)
      - unique (memanggil: flat)
@@ -108,7 +111,7 @@
      - getOptions (dipanggil oleh: containOneOf, endWith, isFalsy, isTruthy, isTypeOf, lowerThan, sameWith, subtract)
      - includes (dipanggil oleh: alert, containOneOf, getFileIdsIn, notSameWith, syncProtectionEditorsBetweenSheet)
      - isAllArray (dipanggil oleh: parse)
-     - isDate (dipanggil oleh: toJSDate)
+     - isDate (dipanggil oleh: toMLDate)
      - isIterable (dipanggil oleh: lazyWrap)
      - isObject (dipanggil oleh: getOptions, sameWith, show, templating, trim)
      - isTypeOf (dipanggil oleh: containOneOf, sum)
@@ -190,7 +193,7 @@
      - test: Diagnostic ping verifikasi koneksi library dari project consumer yang mencetak status Connected ke Logger.
      - toA1Notation: Converter object GridRange (index x,y) menjadi penamaan A1 Notation string readable.
      - toCamelCase: Regex konverter pengubah sentence text regex spasi parser mapper lowercase mapper casing mapper casing identifier regex pattern mapper parser sentence camelCase regex regex sentence parser camel case sentence regex string regex string regex identifier mapper mapper regex sentence.
-     - toJSDate: Konverter serial number tanggal Google Sheets epoch 30 Des 1899 ke native JS Date object dengan validasi isDate.
+     - toMLDate: Konverter serial number tanggal Google Sheets epoch 30 Des 1899 ke native JS Date object dengan validasi isDate.
      - parse: Penggabung merger builder destructuring Object assign constructor kompilator flatten array map key value rest dictionary dictionary obj object instance array object properties obj dictionary flat map constructor flatten map array merge.
      - toSpreadsheetDate: Mengubah JS native timestamp dates/string menjadi angka float serial Google Sheets tanggal.
      - toString: Wrapper JSON.stringify serialisasi object atau array ke JSON string representasi.

@@ -12,7 +12,7 @@ class MLArray extends Array {
    * @param {MLArrayOptions} options
    * @return {MLArray<T>}
    */
-  static init(array, options = {}) {
+  static init(array = [], options = {}) {
     const { flatting = false, deleteNull = false, unique = false, withLog = false } = options
     let result = this.from(lazyWrap(array))
     result.batchSize = 50000
@@ -23,6 +23,21 @@ class MLArray extends Array {
     if (unique)
       result.unique()
     result.withLog = withLog
+    return result
+  }
+
+  findIndexInOrder(valueOrFunc, order = 1) {
+    const isFunction = typeof valueOrFunc === 'function'
+    let currentOrder = 0, result
+    this.iterate((value, no, array) => {
+      if (isFunction ? valueOrFunc(value, no, array) : value === valueOrFunc) {
+        currentOrder++
+        if (currentOrder === order) {
+          result = no
+          return Break
+        }
+      }
+    })
     return result
   }
 
@@ -58,6 +73,7 @@ class MLArray extends Array {
    * Menggunakan one-based index.
    * @param start
    * @param {number|null} end
+   * @return {MLArray<T>}
    */
   slice(start, end = null) {
     if (sameWith(0, start, end, { logic: Or, withLog: !!this.withLog }))
@@ -97,6 +113,10 @@ class MLArray extends Array {
     return this
   }
 
+  /**
+   * @param {function(T, number, MLArray): boolean} predicate
+   * @return {MLArray<T>}
+   */
   filter(predicate) {
     let writeIndex = 0
     this.iterate((data, index) => {
@@ -312,7 +332,7 @@ Array.prototype.asMLArray = function () {
  * @param {MLArrayOptions} options
  * @return {MLArray<T>}
  */
-function initArray(array, options = {}) {
+function initArray(array = [], options = {}) {
   return MLArray.init(array, options)
 }
 

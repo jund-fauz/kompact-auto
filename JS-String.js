@@ -8,39 +8,39 @@ class MLString extends String {
   }
 
   /**
-   * @return {string}
+   * @return {MLString}
    */
   toCamelCase() {
-    if (this.length === 1 && this.match(/[^a-zA-Z0-9]+(.)/g).length)
-      return this
-    return this
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
-      .replace(/^[A-Z]/, (char) => char.toLowerCase())
-      .replace(/\W+/, '')
+    return initString(
+      this
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
+        .replace(/^[A-Z]/, (char) => char.toLowerCase())
+        .replace(/\W+/, '')
+    )
   }
 
   /**
    * @param {Capitalize|LowerCase|UpperCase|string} mode
-   * @return {string}
+   * @return {MLString}
    */
   normalizeFromCamelCase(mode = Capitalize) {
-    const result = this.replace(/[A-Z]/, ' $1')
+    const result = this.replace(/[A-Z]/g, ' $&')
     switch (mode) {
       case Capitalize:
-        return this.capitalize(result)
+        return initString(result).capitalize(result)
       case LowerCase:
-        return result.toLowerCase()
+        return initString(result.toLowerCase())
       case UpperCase:
-        return result.toUpperCase()
+        return initString(result.toUpperCase())
     }
   }
 
   /**
-   * @return {string}
+   * @return {MLString}
    */
   capitalize() {
-    return this[0].toUpperCase() + this.slice(1).toLowerCase()
+    return initString(this[0].toUpperCase() + this.slice(1).toLowerCase())
   }
 
   /**
@@ -53,12 +53,12 @@ class MLString extends String {
   }
 
   /**
-   * @param {string[]} searchValues
+   * @param {string|{logic?: And|Or|string, caseInsensitive?: boolean}} searchValues
    * @return {boolean}
    */
   endWith(...searchValues) {
-    const { logic = And } = getOptions(searchValues),
-      process = searchValue => this.endsWith(searchValue)
+    const { logic = And, caseInsensitive = false } = getOptions(searchValues),
+      process = searchValue => caseInsensitive ? this.toLowerCase().endsWith(searchValue.toLowerCase()) : this.endsWith(searchValue)
     return logic === And
       ? flat(searchValues).every(process)
       : flat(searchValues).some(process)
@@ -95,4 +95,8 @@ function formatNumber(number, digitCount = 2) {
  */
 function toString(param) {
   return JSON.stringify(param)
+}
+
+function isString(value) {
+  return typeof value === 'string' || value instanceof String
 }

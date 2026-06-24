@@ -1,3 +1,5 @@
+var Break = 'BREAK'
+
 /**
  * @template T
  * @param {() => void|T} func
@@ -10,11 +12,17 @@ function iterate(func, options = {}) {
     until = from
   const { untilBefore = false, addition = 1, withReturnValue = func((from += addition) - addition) } = options,
     result = [withReturnValue]
+  if (withReturnValue === Break) return
   for (let i = from; i <= (until - untilBefore); i += addition) {
+    const returned = func(i)
+    if (returned === Break) {
+      if (withReturnValue)
+        return result
+      else
+        return
+    }
     if (withReturnValue)
-      result.push(func(i))
-    else
-      func(i)
+      result.push(returned)
   }
   if (withReturnValue)
     return result

@@ -17,7 +17,7 @@ function getEventDetail(e, options = {}) {
     range = e.range,
     sheet = range.getSheet().getName(),
     column = range.getColumn()
-  Logger.log(`Range: ${sheet}!${range.getA1Notation()}\nValue: ${e.value ?? `''`}\nEdited by: ${e.user.getEmail()}`)
+  Logger.log(`Range: ${sheet}!${range.getA1Notation()}\nValue: ${e.value}\nEdited by: ${e.user.getEmail()}`)
   return {
     sheet,
     range: `${sheet}!${range.getA1Notation()}`,

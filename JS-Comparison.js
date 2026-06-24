@@ -136,6 +136,6 @@ function isTypeOf(type, ...array) {
   const { logic = And } = getOptions(array)
   array = flat(array)
   return logic === And
-    ? array.every(val => typeof val === type)
-    : array.some(val => typeof val === type)
+    ? array.every(val => type === 'string' ? isString(val) : typeof val === type)
+    : array.some(val => type === 'string' ? isString(val) : typeof val === type)
 }

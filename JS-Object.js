@@ -124,11 +124,11 @@ class MLObject {
 
   /**
    * @param {T} values
-   * @return {string|string[]}
+   * @return {MLString|MLString[]}
    */
   getKeyByValue(...values) {
     values = flat(values)
-    const result = this.filter((key, value) => values.includes(value)).map(key => key)
+    const result = this.filter((key, value) => values.includes(value)).map(key => initString(key))
     return result.length > 1 ? result : result[0]
   }
 

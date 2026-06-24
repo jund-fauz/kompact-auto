@@ -96,23 +96,13 @@ function formatDate(options = {}) {
   )
 }
 
-function getCurrentDate() {
-  const today = new MLDate()
-  return {
-    day: today.getDay(),
-    date: today.getDate(),
-    month: today.getMonth(),
-    year: today.getFullYear()
-  }
-}
-
 /**
- * Convert tanggal dalam bentuk angka dari spreadsheet ke objek Date di JavaScript
+ * Convert tanggal dalam bentuk angka dari spreadsheet ke objek MLDate
  * @param {number} value
- * @return {Date}
+ * @return {MLDate}
  */
-function toJSDate(value) {
-  const date = new Date(Math.round((value - 25569) * 86400000))
+function toMLDate(value) {
+  const date = initDate(Math.round((value - 25569) * 86400000))
   if (!isDate(date)) throw Error(`${value} bukanlah angka tanggal yang valid`)
   return date
 }

@@ -49,7 +49,7 @@ function alert(content, options = {}) {
   const { buttonSet = ButtonSet().OK, title = '' } = options
   if (typeof content !== 'string')
     content = JSON.stringify(content)
-  if (includes(content, '[', ']'))
+  if (initString(content).includes('[', ']'))
     content = content.replaceAll('[[', '[\n\t[').replaceAll('],[', '],\n[').replaceAll(']]', ']\n\t]')
   return ui().alert(title, content, buttonSet)
 }
