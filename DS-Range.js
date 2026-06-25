@@ -41,15 +41,10 @@ class DSRange {
 
   /** @return {number} */
   columnCount() {
-    const columns = this.partialRange.map(a1N => {
-      let result = a1N.match(Regex.ColumnLetter.WithoutNumber)?.[0]
-      if (result?.length)
-        result = getColumnNum(result)
-      return result
-    })
+    const columns = this.column({ withLastColumn: true })
     if (!columns[0] || columns.length < 2 || !columns[1])
       return 1
-    return subtract(columns.reverse())
+    return subtract(columns.reverse()) + 1
   }
 
   /**

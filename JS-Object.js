@@ -44,7 +44,7 @@ class MLObject {
    */
   entries() {
     if (!this.entriesVersion)
-      this.entriesVersion = MLArray.init(Object.entries(this.object))
+      this.entriesVersion = initArray(Object.entries(this.object))
     return this.entriesVersion
   }
 
@@ -86,15 +86,15 @@ class MLObject {
    */
   get(...keys) {
     const { isDeleteNull = false } = getOptions(keys),
-      mLArrayKeys = MLArray.init(keys, { flatting: true })
+      mLArrayKeys = initArray(keys, { flatting: true })
     /**
      * @param {string} key
      * @return {*}
      */
-    const process = key => this[key],
+    const process = key => this[key]/*,
       processArrayValue = value => isArray(value) && value.length === 1 ? value[0] : value
     if (isAllArray(this.values()))
-      return this.values().map(processArrayValue)
+      return this.values().map(processArrayValue)*/
     if (mLArrayKeys.length > 1) {
       const result = mLArrayKeys.map(process)
       return isDeleteNull
@@ -184,7 +184,7 @@ function initObject(object) {
  * @return {boolean}
  */
 function isObject(...values) {
-  return values.every(value => value && typeof value === 'object' && !isArray(value))
+  return values.every(value => value && (typeof value === 'object' || value instanceof MLObject) && !isArray(value))
 }
 
 /**
@@ -206,4 +206,11 @@ function parse(param) {
   if (isAllArray(...param))
     return Object.fromEntries(param)
   return Object.assign({}, ...param)
+}
+
+function toJSObject(value) {
+  if (isArray(value)) return value.map(toJSObject)
+  if (value instanceof MLObject) return value.object
+  return value
+
 }

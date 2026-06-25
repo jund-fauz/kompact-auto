@@ -100,7 +100,7 @@ class MLArray extends Array {
   }
 
   /**
-   * @param {Array<T>|{many: boolean}} values
+   * @param {T|{many: boolean}} values
    * @return {MLArray}
    */
   push(...values) {
@@ -319,6 +319,37 @@ class MLArray extends Array {
    */
   iterate(callbackFunc) {
     iterate(i => callbackFunc(this[i], i, this), { from: 0, until: this.length, untilBefore: true })
+  }
+
+  /**
+   * @return {number}
+   */
+  sum() {
+    let decimalNum = 0,
+      numbers = this
+    if (numbers.isTypeOf('string')) {
+      decimalNum = this.map(val => val.split('.')[1]?.length).unique()[0] ?? 0
+      numbers = numbers.map(val => val.replace('.', ''))
+    }
+    const result = numbers.reduce((total, num) => total + (typeof num === 'number' ? num : Number(num)), 0)
+    return result / (10 ** decimalNum)
+  }
+
+  max() {
+    return Math.max(...this)
+  }
+
+  /**
+   * Mengecek tipe data menggunakan "typeof" bawaan JavaScript untuk banyak variabel sekaligus
+   * @param {string} type
+   * @param {{logic?: And|Or|string}} options
+   * @return {boolean}
+   */
+  isTypeOf(type, options = {}) {
+    const { logic = And } = options
+    return logic === And
+      ? this.every(val => type === 'string' ? isString(val) : typeof val === type)
+      : this.some(val => type === 'string' ? isString(val) : typeof val === type)
   }
 }
 

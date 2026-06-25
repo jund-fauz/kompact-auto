@@ -135,7 +135,7 @@ class SpreadsheetManipulation {
       Logger.log(cache.keys())
 
     if (cache.keys().length !== this.sheet.length)
-      throw Error(`Sheet ${this.sheet.immutableFilter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada.`)
+      Logger.log(`Sheet ${this.sheet.immutableFilter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada. SKIP.`)
 
     if (except) {
       except = MLArray.init(except)
@@ -222,7 +222,11 @@ class SpreadsheetManipulation {
    * @return {MLArray<string>}
    */
   headers(options = {}) {
-    const { headerRow = this.headerRow[this.sheet[0]] ?? 1, unshiftCounts = 1, sheet = this.sheet[0] } = options,
+    const {
+        headerRow = this.headerRow[this.sheet.join(', ')] ?? 1,
+        unshiftCounts = 1,
+        sheet = this.sheet[0]
+      } = options,
       cacheKey = `${this.spreadsheetId}_${sheet}_${headerRow}`,
       cache = getGlobalCache()
     if (!cache.headers[cacheKey])
@@ -264,7 +268,7 @@ class SpreadsheetManipulation {
    */
   column(columnName, options = {}) {
     const {
-        headerRow = this.headerRow[this.sheet[0]] ?? 1,
+        headerRow = this.headerRow[this.sheet.join(', ')] ?? 1,
         isLastHeader = false,
         isLetter = false,
         unshiftCounts = 1,
@@ -394,8 +398,8 @@ class SpreadsheetManipulation {
           vals = vals.concat(repeat(() => [], rowCount - vals.length))
         return vals.length ? vals : repeat(() => [], rowCount === Infinity ? 1 : rowCount)
       }
-    let headerRow = this.headerRow[this.sheet[0]] ?? 1,
-      column = 0,
+    let headerRow = this.headerRow[this.sheet.join(', ')] ?? 1,
+      columns = [],
       sampleRange = '',
       {
         sheet = this.sheet,
@@ -410,9 +414,7 @@ class SpreadsheetManipulation {
       sheet = (isRangesAnArray ? ranges[0] : ranges).split('!')[0]
     }
     if (filterViewName || withHeader)
-      column = editRange(sampleRange, { withLog: this.withLog }).column({ withLastColumn: true })
-    if (this.withLog)
-      Logger.log(ranges)
+      columns = ranges.map(range => editRange(range, { withLog: this.withLog }).column({ withLastColumn: true }))
     let values = (isRangesAnArray
       ? spreadsheet.Values.batchGet(this.spreadsheetId, {
         ranges, ...optionsForAPI,
@@ -423,7 +425,7 @@ class SpreadsheetManipulation {
         return dataProcess(vals, rowCount)
       })
       : (() => {
-        const dSRange = editRange(ranges)
+        const dSRange = editRange(ranges, { withLog: this.withLog })
         let rowCount = dSRange.rowCount({ needToFind: true }),
           currentRow = dSRange.row(), result = []
         if (rowCount <= 5000)
@@ -451,40 +453,39 @@ class SpreadsheetManipulation {
       Logger.log('Options: ' + JSON.stringify(options))
     let combinedHeaders = [], widths
     if (isAll && isRangesAnArray && stack === Horizontal)
-      widths = ranges.map((range, no) => max(editRange(range).column(), values[no] ? max(values[no].map(row => row.length), 1) : 1))
+      widths = ranges.map((range, no) => max(editRange(range, { withLog: this.withLog }).columnCount()))
     if (isAll && withHeader) {
       const headers = this.headers({ sheet, headerRow, unshiftCounts: 0 })
       combinedHeaders = isRangesAnArray && stack === Horizontal
         ? ranges.flatMap((range, no) => {
           const startCol = editRange(range, { withLog: this.withLog }).column() || 1,
-            sliced = headers.slice(startCol, startCol + widths[no] - 1)
+            sliced = headers.slice(startCol, startCol + widths[no])
           return Array.from({ length: widths[no] }, (_, i) => sliced[i] || '')
         })
-        : headers.slice(...column)
+        : headers.slice(columns[0][0], columns.at(-1)[1])
     }
     if (values.length)
       if (isAll && isRangesAnArray)
         if (stack === Vertical)
           values = values.flat(1)
         else if (fillEmpty) {
-          const length = max(values.map(data => data ? data.length : 0)),
-            totalWidth = sum(widths),
-            newValues = new MLArray(length)
-          for (let r = 0; r < length; r++) {
+          const totalWidth = sum(widths),
+            newValues = new MLArray(max(values.map(data => data?.length ?? 0)))
+          values = values.asMLArray()
+          newValues.iterate((_, r) => {
             const newRow = new Array(totalWidth)
             let colOffset = 0
-            for (let b = 0; b < values.length; b++) {
-              const block = values[b],
-                rowData = block?.[r] ?? [],
+            values.iterate((value, b) => {
+              const rowData = value?.[r] ?? [],
                 blockWidth = widths[b]
 
-              for (let c = 0; c < blockWidth; c++)
+              for (let c = 0; c <= blockWidth; c++)
                 newRow[colOffset + c] = rowData?.[c] ?? ''
 
               colOffset += blockWidth
-            }
+            })
             newValues[r] = newRow
-          }
+          })
           values = newValues
         } else
           values = MLArray.from({ length: max(values.map(block => block.length)) }, (_, row) => values.map(block => (block[row] || [])).lazyFlat())
@@ -495,7 +496,7 @@ class SpreadsheetManipulation {
         if (!isAll) values = values.flat(1)
       }
     if (notFiltered) {
-      let rangeRows = editRange(sampleRange).row({ withLastRow: true }),
+      let rangeRows = editRange(sampleRange, { withLog: this.withLog }).row({ withLastRow: true }),
         rows = [],
         firstRow = 0,
         currentRow = 0
@@ -537,7 +538,7 @@ class SpreadsheetManipulation {
         values.filter((rowData, row) => {
           let isHidden = false
           for (const columnIndex in specsMap) {
-            const realIndex = columnIndex - column[0] + 1,
+            const realIndex = columnIndex - columns[0][0] + 1,
               { hiddenValues, visibleBackgroundColor } = specsMap[columnIndex]
             // noinspection JSDeprecatedSymbols
             if (
@@ -596,11 +597,15 @@ class SpreadsheetManipulation {
     }
     if (isAll && withHeader) {
       const tempValues = {}
-      combinedHeaders.forEach((header, index) => tempValues[initString(header).toCamelCase()] = (values?.rows ? values.values : values).map(value => value[index]))
+      combinedHeaders.forEach((header, index) => {
+        // if (columns.every(column => !between(column[0], index, column[1]))) return
+        const result = (values?.rows ? values.values : values).map(value => value[index])
+        tempValues[initString(header).toCamelCase()] = result.length > 1 ? result : result[0]
+      })
       if (values?.rows)
         values.values = tempValues
       else
-        values = initObject(tempValues)
+        values = tempValues
     }
     return !values ? [] : trim(values)
   }
@@ -788,13 +793,12 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   autoFill(range) {
-    const sheetId = this.sheetId.values()[0]
-    return this.addRequests({
+    return this.addRequests(this.sheetId.values().map(sheetId => ({
       autoFill: {
         range: this.toGridRange(sheetId, range),
         useAlternateSeries: false
       }
-    })
+    })))
   }
 
   /**
@@ -930,20 +934,23 @@ class SpreadsheetManipulation {
 
   /**
    * Menyalin range dari sourceSheet ke targetSheet dengan pasteType tertentu (format/formula/normal).
-   * @param {string} sourceSheet
    * @param {RawRange} range
    * @param {PasteType} pasteType
-   * @param {{targetSheet?: string|string[], targetRange?: RawRange}} options
+   * @param {{sourceSheet?: string, targetSheet?: string|string[], targetRange?: RawRange}} options
    * @return {SpreadsheetManipulation}
    */
-  copyPaste(sourceSheet, range, pasteType, options = {}) {
-    let { targetSheet = this.sheet.immutableFilter(name => name !== sourceSheet), targetRange = null } = options
+  copyPaste(range, pasteType, options = {}) {
+    let {
+      sourceSheet = null,
+      targetSheet = this.sheet.immutableFilter(name => name !== sourceSheet),
+      targetRange = null
+    } = options
     targetSheet = lazyWrap(targetSheet)
     if (typeof sourceSheet === 'number')
       sourceSheet = sourceSheet.toString()
     return this.addRequests(targetSheet.map(name => ({
       copyPaste: {
-        source: this.toGridRange(sourceSheet, range),
+        source: this.toGridRange(sourceSheet ?? name, range),
         destination: this.toGridRange(name, targetRange ?? range),
         pasteType
       }
@@ -1111,7 +1118,7 @@ class SpreadsheetManipulation {
       } = options,
       headers = this.headers({ headerRow }),
       helperColName = 'FILTER HELPER',
-      beforeEmptyRow = this.search(startRow, notEmptyColumnTitle, '', Row) - 1,
+      beforeEmptyRow = this.search(startRow, notEmptyColumnTitle, '', Row, { sheet }) - 1,
       values = this.values([startRow, startColumnTitle, {
         endColumn: endColumnTitle,
         endRow: beforeEmptyRow,
@@ -1201,7 +1208,7 @@ class SpreadsheetManipulation {
   filter(ranges, column, condition, options = {}) {
     const rangeOptions = {}
     if (typeof ranges !== 'string') {
-      const { headerRow = this.headerRow[this.sheet[0]] ?? 1, isLastHeader = false } = isObject(ranges.at(-1))
+      const { headerRow = this.headerRow[this.sheet.join(', ')] ?? 1, isLastHeader = false } = isObject(ranges.at(-1))
         ? ranges.at(-1)
         : ranges.every(isArray) && isObject(ranges[0].at(-1))
           ? ranges[0].at(-1)
@@ -1391,10 +1398,10 @@ class SpreadsheetManipulation {
           currentNo = 0
         } else
           currentNo++
-        const dsRange = editRange(range),
+        const dsRange = editRange(range, { withLog: this.withLog }),
           rowCount = dsRange.rowCount(),
           calculatedValues = typeof values === 'function'
-            ? values(sheet, dsRange.columnCount({ isLetter: true }), dsRange.row())
+            ? values(sheet, dsRange.column({ isLetter: true }), dsRange.row())
             : values,
           isCalculated2d = isArray(calculatedValues) && calculatedValues.every(isArray)
         if (this.withLog)
@@ -1435,7 +1442,7 @@ class SpreadsheetManipulation {
           currentNo = 0
         } else
           currentNo++
-        const dsRange = editRange(range),
+        const dsRange = editRange(range, { withLog: this.withLog }),
           rowCount = dsRange.rowCount(),
           columnCount = dsRange.columnCount()
         return {
@@ -1622,11 +1629,11 @@ class SpreadsheetManipulation {
    */
   deleteInvalidRequest() {
     if (this.requests.length)
-      this.requests = trim(this.requests.filter(req => isObject(req) && Object.keys(req).length))
+      this.requests = trim(this.requests.filter(req => isObject(req) && Object.keys(req).length), { useJsObject: true })
     if (this.valueRequests.length)
-      this.valueRequests = trim(this.valueRequests.filter(req => isObject(req) && Object.keys(req).length))
+      this.valueRequests = trim(this.valueRequests.filter(req => isObject(req) && Object.keys(req).length), { useJsObject: true })
     if (this.emptyValueRequests.length)
-      this.emptyValueRequests = trim(this.emptyValueRequests.filter(req => isString(req)))
+      this.emptyValueRequests = trim(this.emptyValueRequests.filter(req => isString(req)), { useJsObject: true })
   }
 
   processSheet(sheet, except) {
@@ -1700,13 +1707,10 @@ class SpreadsheetManipulation {
       headers,
       lastRows, lastColumns
     if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
-      const cacheKey = `${this.spreadsheetId}_${sheet}_mix_${this.headerRow[sheet] ?? ranges[0].at(-1).headerRow ?? 1}`,
-        cache = getGlobalCache()
-      if (!cache.headers[cacheKey]) {
-        const row = this.headerRow[sheet] ?? ranges[0].at(-1)?.headerRow ?? 1
-        addToGlobalCache(
-          CacheType.Header,
-          cacheKey,
+      const cacheKey = `headers_${this.spreadsheetId}_${sheet}_mix_${this.headerRow[sheet.join(', ')] ?? ranges[0].at(-1).headerRow ?? 1}`
+      if (!this.cache[cacheKey]) {
+        const row = this.headerRow[sheet.join(', ')] ?? ranges[0].at(-1)?.headerRow ?? 1
+        this.cache[cacheKey] =
           this.values([`${row}:${row}`], {
             spreadsheetId: this.spreadsheetId,
             fillEmpty: false,
@@ -1714,9 +1718,8 @@ class SpreadsheetManipulation {
             stack: Vertical,
             sheet
           })
-        )
       }
-      headers = cache[CacheType.Header][cacheKey].map(array => initArray(array))
+      headers = this.cache[cacheKey].map(array => initArray(array))
     }
 
     if (ranges.some(range => sameWith(0, range[1], range[2], range.at(-1).endRow, range.at(-1).endColumn, {
@@ -1822,7 +1825,7 @@ class SpreadsheetManipulation {
       sheetName = this.sheetId.getKeyByValue(sheet)
     if (!isString(range))
       range = this.processRange(range, { sheet: sheetName })[0]
-    return editRange(range).toGrid(sheetId)
+    return editRange(range, { withLog: this.withLog }).toGrid(sheetId)
   }
 
   /**
@@ -1831,8 +1834,8 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   setHeaderRow(headerRow) {
-    if (!this.headerRow[this.sheet[0]])
-      this.headerRow[this.sheet[0]] = headerRow
+    if (!this.headerRow[this.sheet.join(', ')])
+      this.headerRow[this.sheet.join(', ')] = headerRow
     return this
   }
 }
