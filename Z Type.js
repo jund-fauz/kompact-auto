@@ -25,6 +25,7 @@ var ui = () => SpreadsheetApp.getUi(),
 
   /** Type */
   mlArray = 'MLArray',
+  mlObject = 'MLObject',
 
   /** Sheet Type for Request Builder */
   Daily = 'DAILY',
@@ -141,8 +142,9 @@ var ui = () => SpreadsheetApp.getUi(),
   PastYear = 'PAST_YEAR',
 
   /** Pengkategorian Spreadsheet */
-  Lm = ['ANTAM', 'EK', 'EKU', 'SG', 'HA', 'TEMBAGA', 'LM CAMPUR', 'LM VALENT', 'PERAK', 'PERAK STARSILVER', 'CT'],
-  Cabang = ['JKT', 'SMG', 'SBY'],
-  Divisi = ['CT', 'LM'],
-  CabangStargold = ['KRANGGAN', 'MAG', 'ROYAL'],
-  Uang = [...Cabang, 'LM']
+  Lm = initArray(['ANTAM', 'EK', 'EKU', 'SG', 'HA', 'TEMBAGA', 'LM CAMPUR', 'LM VALENT', 'PERAK', 'PERAK STARSILVER']),
+  JualBeli = initArray([...Lm, 'CT' ]),
+  Cabang = initArray(['JKT', 'SMG', 'SBY']),
+  Divisi = initArray(['CT', 'LM']),
+  CabangStargold = initArray(['KRANGGAN', 'MAG', 'ROYAL']),
+  Uang = initArray([...Cabang, 'LM'])

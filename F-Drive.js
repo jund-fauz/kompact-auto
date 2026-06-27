@@ -10,7 +10,7 @@ const config = {
  * Mendapatkan Folder object dari path
  * Contoh: "/Folder1/SubFolder2/SubFolder3"
  * @param {string} path Path folder (dimulai dengan /)
- * @param {Object} options
+ * @param {{ isSharedAccount?: boolean, withLog?: boolean }} options
  * @return {string|null} ID Folder atau null jika tidak ditemukan
  */
 function getFolderIdFromPath(path, options = {}) {
@@ -41,7 +41,7 @@ function getFolderIdFromPath(path, options = {}) {
 /**
  * @param {string} name Nama harus lengkap dan sama agar file sesuai yang diharapkan
  * @param {string} type
- * @param {Object} options
+ * @param {{ folderPath?: string, folderId?: string, isSharedAccount?: boolean, withLog?: boolean, notRequiredToFound?: boolean }} options
  * @return {string|null}
  */
 function getFileIdByName(name, type = Spreadsheet, options = {}) {
@@ -80,23 +80,23 @@ function getFileIdByName(name, type = Spreadsheet, options = {}) {
 
 /**
  * @param {string} path
- * @param {Object} options
- * @return {string[]|Object[]}
+ * @param {{ ownedBy?: string, withLog?: boolean, isSharedAccount?: boolean, withName?: boolean }} options
+ * @return {MLArray<string>|MLObject<string>}
  */
 function getFileIdsIn(path, options = {}) {
   const { ownedBy = null, withLog = true, isSharedAccount = false, withName = false } = options,
     /** @type {string} */
     parentFolderId = path.includes('/') ? retry(() => getFolderIdFromPath(path, { isSharedAccount, withLog }), { withReturnValue: true }) : path
-  let results = {}
+  let results = initObject()
   try {
     let q = `'${parentFolderId}' in parents and trashed = false`
     if (ownedBy)
       q += ` and '${ownedBy}' in owners`
     const files = retry(() => Drive.Files.list({ q, ...config, fields: `files(id${withName ? ',name' : ''})` }).files, { withReturnValue: true })
     if (!withName)
-      results = files.map(file => file.id)
+      results = initArray(files.map(file => file.id))
     else
-      files.forEach(file => results[file.name] = file.id)
+      results.set(files.map(file => ({ [file.name]: file.id })))
   } catch (e) {
     templateLogError(e, 'getFilesIn')
   }

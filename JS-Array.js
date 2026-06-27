@@ -109,7 +109,7 @@ class MLArray extends Array {
     if (many)
       this.forEach((_, no) => values[no] && process(values[no]))
     else
-      process(flat(values))
+      process(values.lazyFlat())
     return this
   }
 
@@ -162,7 +162,7 @@ class MLArray extends Array {
    */
   get(...at) {
     const { defaultIndex = false } = getOptions(at)
-    at = flat(at)
+    at = at.lazyFlat()
     /**
      * @param {number} index
      * @return {undefined|*}
@@ -180,7 +180,7 @@ class MLArray extends Array {
    * @param {T} data
    */
   addAfter(at, ...data) {
-    data = flat(data)
+    data = data.lazyFlat()
     this.batch(data.length, i => this.splice(at + i, 0, ...data.slice(i, i + this.batchSize)))
     return this
   }
@@ -362,7 +362,11 @@ class MLArray extends Array {
 }
 
 Array.prototype.asMLArray = function () {
-  return MLArray.init(this)
+  return initArray(this)
+}
+
+Array.prototype.lazyFlat = function () {
+  return flat(this)
 }
 
 /**
@@ -401,7 +405,7 @@ function flat(array) {
  * @return {T[]}
  */
 function unique(...array) {
-  array = flat(array).filter(data => data)
+  array = array.lazyFlat().filter(data => data)
   return [...new Set(array)]
 }
 

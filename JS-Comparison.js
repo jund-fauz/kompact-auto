@@ -9,7 +9,7 @@
  */
 function containOneOf(value, ...contains) {
   const { caseSensitive = false } = getOptions(contains)
-  contains = flat(contains)
+  contains = contains.lazyFlat()
   if (isTypeOf('string', value, contains)) {
     value = value.trim()
     return contains.some(val =>
@@ -40,7 +40,7 @@ function sameWith(value, ...arr) {
     ('withLog' in arr.at(-1)
       || 'logic' in arr.at(-1))
   ) ? getOptions(arr) : {}
-  arr = flat(arr)
+  arr = arr.lazyFlat()
   if (withLog) {
     Logger.log(`Value: ${JSON.stringify(value)}`)
     Logger.log(`Compare With: ${JSON.stringify(arr)}`)
@@ -108,7 +108,7 @@ function lowerThan(value, ...comparations) {
  */
 function isTruthy(...array) {
   const { logic = And } = getOptions(array)
-  array = flat(array)
+  array = array.lazyFlat()
   return logic === And
     ? array.filter(data => data).length === array.length
     : array.some(data => data)
@@ -120,7 +120,7 @@ function isTruthy(...array) {
  */
 function isFalsy(...array) {
   const { logic = And } = getOptions(array)
-  array = flat(array)
+  array = array.lazyFlat()
   return logic === And
     ? array.filter(data => !data).length === array.length
     : array.some(data => !data)
@@ -134,7 +134,7 @@ function isFalsy(...array) {
  */
 function isTypeOf(type, ...array) {
   const { logic = And } = getOptions(array)
-  array = flat(array)
+  array = array.lazyFlat()
   return logic === And
     ? array.every(val => type === 'string' ? isString(val) : typeof val === type)
     : array.some(val => type === 'string' ? isString(val) : typeof val === type)

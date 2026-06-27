@@ -7,7 +7,8 @@
  *  - Tiap file diberikan kategori kode sesuai dengan platform / framework yang digunakan, dengan ketentuan:
  *   1. DS = Drive Spreadsheet
  *   2. F = File (Google Drive)
- *   3. JS = JavaScript (Vanilla)
+ *   3. GAS = Google App Script
+ *   4. JS = JavaScript (Vanilla)
  *  - Fungsi-fungsi dengan tujuan manipulasi untuk tipe data tertentu dipisahkan di dalam satu file untuk satu tipe data / kategori.
  * C. Pemisahan / Penggabungan Fungsi
  *  - Fungsi dipisah saat tujuan dari suatu fungsi sudah memiliki perbedaan yang jelas.

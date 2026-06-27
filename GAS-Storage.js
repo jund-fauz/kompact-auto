@@ -7,18 +7,23 @@ class Storage {
 
   /**
    * @param {string|string[]} keys
-   * @return {MLObject|*|null}
+   * @return {MLObject|MLArray|*|null}
    */
   get(...keys) {
     const keysMLArray = MLArray.init(keys, { flatting: true })
     let result = keysMLArray.mapToObject(key => ({
       [key]: parse(this.storage.getProperty(key) ?? 'null')
     }))
-    if (result.values().length > 1)
+    if (keysMLArray.length > 1) {
+      /** @type {MLObject} */
+      this.localData = result
       return result
+    }
     result = result.values()[0]
     if (isObject(result))
       result = initObject(result)
+    else if (isArray(result))
+      result = initArray(result)
     return result
   }
 
@@ -28,6 +33,8 @@ class Storage {
    * @return {Storage}
    */
   set(keys, values = null) {
+    if (this.localData)
+      this.localData.set(keys, values)
     const process = (key, value) => {
       this.storage.setProperty(key, JSON.stringify(value))
       return { [key]: value }
@@ -57,24 +64,27 @@ class Storage {
     if (!(currentDatas instanceof MLObject))
       currentDatas = initObject({ [keys[0]]: currentDatas })
     keys.iterate((key, no) => {
-      if (isArray(currentDatas[key]))
-        currentDatas[key].push(...values[no])
-      else if (isObject(currentDatas[key]))
-        currentDatas.set(key, { ...currentDatas[key], ...values[no] })
-      else {
-        let data
-        switch (defaultWrapAs) {
-          case object:
-            data = { [key]: values[no] }
-            break
-          case array:
-            data = wrap(values[no])
-            break
-          default:
-            data = values[no]
-            break
-        }
-        currentDatas.set(key, data)
+      switch (currentDatas[key].constructor.name) {
+        case mlArray:
+          currentDatas[key].push(values[no])
+          break
+        case mlObject:
+          currentDatas.set(key, { ...currentDatas[key], ...values[no] })
+          break
+        default:
+          let data
+          switch (defaultWrapAs) {
+            case object:
+              data = { [key]: values[no] }
+              break
+            case array:
+              data = wrap(values[no])
+              break
+            default:
+              data = values[no]
+              break
+          }
+          currentDatas.set(key, data)
       }
     })
     return this.set(currentDatas)

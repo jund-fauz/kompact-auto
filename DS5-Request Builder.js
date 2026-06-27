@@ -223,10 +223,10 @@ class SpreadsheetManipulation {
    */
   headers(options = {}) {
     const {
-      unshiftCounts = 1,
-      sheet = this.sheet[0],
-      headerRow = this.headerRow[sheet] ?? 1
-    } = options,
+        unshiftCounts = 1,
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1
+      } = options,
       cacheKey = `${this.spreadsheetId}_${sheet}_${headerRow}`,
       cache = getGlobalCache()
     if (!cache.headers[cacheKey])
@@ -262,28 +262,30 @@ class SpreadsheetManipulation {
    *    withHeader?: boolean,
    *    prefix?: string,
    *    lastHeaderPrefix?: string,
-   *    sheet?: string
+   *    sheet?: string,
+   *    headerOrder?: number
    *   }} options
    * @return {string|string[]|number|number[]|MLObject}
    */
   column(columnName, options = {}) {
     const {
-      isLastHeader = false,
-      isLetter = false,
-      unshiftCounts = 1,
-      withHeader = false,
-      prefix = '',
-      lastHeaderPrefix = '',
-      sheet = this.sheet[0],
-      headerRow = this.headerRow[sheet] ?? 1
-    } = options,
+        isLastHeader = false,
+        isLetter = false,
+        unshiftCounts = 1,
+        withHeader = false,
+        prefix = '',
+        lastHeaderPrefix = '',
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1,
+        headerOrder = 1
+      } = options,
       headers = this.headers({ headerRow, sheet, unshiftCounts }),
       cols = []
     columnName = lazyWrap(columnName)
     let { lastHeaders = null } = options,
       result = {}
     const process = (column, isLastHeader) => {
-      const colNum = isLastHeader ? headers.lastIndexOf(column) : headers.indexOf(column)
+      const colNum = isLastHeader ? headers.lastIndexOf(column) : headers.findIndexInOrder(column, headerOrder)
       if (colNum < 1) throw Error(`Kolom dengan judul ${column} tidak ada pada sheet ${sheet}. Spreadsheet: ${this.spreadsheetId}`)
       const col = isLetter ? getColumnLetter(colNum) : colNum
       if (withHeader) {
@@ -376,17 +378,17 @@ class SpreadsheetManipulation {
     if (!ranges.some(isArray))
       ranges = wrap(ranges)
     const {
-      isAll = false,
-      notFiltered = false,
-      filterViewName = null,
-      withRows = false,
-      dateFormat = '',
-      stack = Horizontal,
-      vro = Formatted,
-      fillEmpty = true,
-      assignKeyWith = null,
-      ...rest
-    } = isEmpty(options) ? this.valuesOption : options,
+        isAll = false,
+        notFiltered = false,
+        filterViewName = null,
+        withRows = false,
+        dateFormat = '',
+        stack = Horizontal,
+        vro = Formatted,
+        fillEmpty = true,
+        assignKeyWith = null,
+        ...rest
+      } = isEmpty(options) ? this.valuesOption : options,
       /**
        * @template T
        * @param {T[][]} vals
@@ -426,7 +428,7 @@ class SpreadsheetManipulation {
       Logger.log('Options: ' + JSON.stringify(options))
     let combinedHeaders = [], widths
     if (assignKeyWith === Header || (isAll && stack === Horizontal))
-      widths = ranges.map((range, no) => max(editRange(range, { withLog: this.withLog }).columnCount()))
+      widths = ranges.map((range, no) => editRange(range, { withLog: this.withLog }).columnCount())
     if (assignKeyWith === Header) {
       const headers = this.headers({ sheet, headerRow, unshiftCounts: 0 })
       combinedHeaders = stack === Horizontal
@@ -443,7 +445,7 @@ class SpreadsheetManipulation {
           values = values.flat(1)
         else if (fillEmpty) {
           const totalWidth = sum(widths),
-            newValues = new MLArray(max(values.map(data => data?.length ?? 0)))
+            newValues = new MLArray(values.map(data => data?.length ?? 0).max())
           values = values.asMLArray()
           newValues.iterate((_, r) => {
             const newRow = new Array(totalWidth)
@@ -461,7 +463,7 @@ class SpreadsheetManipulation {
           })
           values = newValues
         } else
-          values = MLArray.from({ length: max(values.map(block => block.length)) }, (_, row) => values.map(block => (block[row] || [])).lazyFlat())
+          values = MLArray.from({ length: values.map(block => block.length).max() }, (_, row) => values.map(block => (block[row] || [])).lazyFlat())
       else {
         values = values.flat(1)
         if (fillEmpty)
@@ -552,7 +554,7 @@ class SpreadsheetManipulation {
     }
     if (values && dateFormat) {
       let currentValues = values?.rows ? values.values : values
-      const formattingFunc = cell => isDate(cell) ? formatDate({ input: cell, format: dateFormat }) : cell,
+      const formattingFunc = cell => isDate(cell) ? initDate(cell).format(dateFormat) : cell,
         /** Untuk memangkas looping, baris 1 digunakan sebagai sample */
         dateColumns = isAll && currentValues[0].search(value => isDate(value))
 
@@ -648,11 +650,11 @@ class SpreadsheetManipulation {
    */
   search(startRowOrRow, startColumnOrColumn, searchValues, type, options = {}) {
     const {
-      sheet = this.sheet[0],
-      headerRow = this.headerRow[sheet] ?? 1,
-      isLastHeader = false,
-      defaultValue = 0
-    } = options,
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1,
+        isLastHeader = false,
+        defaultValue = 0
+      } = options,
       /** @type {RangeOptions} */
       optionsForRange = {
         headerRow,
@@ -1098,13 +1100,13 @@ class SpreadsheetManipulation {
         throw Error('Minimal 2 kolom untuk di-sort dengan posisi kosong di atas menggunakan array. Jika ingin menggunakan 1 kolom, masukkan sebagai string biasa.')
 
     const {
-      startRow = 2,
-      isAscending = true,
-      ascendingSortCol = null,
-      hideProcessed = false,
-      sheet = this.sheet[0],
-      headerRow = this.headerRow[sheet] ?? 1
-    } = options,
+        startRow = 2,
+        isAscending = true,
+        ascendingSortCol = null,
+        hideProcessed = false,
+        sheet = this.sheet[0],
+        headerRow = this.headerRow[sheet] ?? 1
+      } = options,
       headers = this.headers({ headerRow }),
       helperColName = 'FILTER HELPER',
       beforeEmptyRow = this.search(startRow, notEmptyColumnTitle, '', Row, { sheet }) - 1,
@@ -1171,10 +1173,10 @@ class SpreadsheetManipulation {
         setBasicFilter: {
           filter: {
             range: this.toGridRange(sheet, [startRow - 1, startColumnTitle, {
-              untilLastRow: true,
-              headerRow,
-              endColumn: endColumnTitle
-            }]
+                untilLastRow: true,
+                headerRow,
+                endColumn: endColumnTitle
+              }]
             ),
             criteria: isArray(sortByColumnTitle)
               ? Object.assign({}, ...sortByColumnTitle.map(filterCriteria))
@@ -1268,7 +1270,7 @@ class SpreadsheetManipulation {
       unprotectedRange = this.processRange(unprotectedRange)
     if (!this.sheet && !range)
       return this
-    /** @type {Object.<string, GridRange>} */
+    /** @type {Object<string, GridRange>} */
     let gridRanges = null
     if (!isObject(range))
       gridRanges = parse(
@@ -1541,7 +1543,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   addRequests(...array) {
-    array = flat(array)
+    array = array.lazyFlat()
     if (array.length)
       this.requests.push(array)
     return this
@@ -1553,7 +1555,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   addValueRequests(...array) {
-    array = flat(array)
+    array = array.lazyFlat()
     if (array.length)
       this.valueRequests.push(array)
     return this
@@ -1565,7 +1567,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   addEmptyValueRequests(...array) {
-    array = flat(array)
+    array = array.lazyFlat()
     if (array.length)
       this.emptyValueRequests.push(array)
     return this
@@ -1653,7 +1655,7 @@ class SpreadsheetManipulation {
       /** @type {MLObject<MLArray>} */
       headers,
       lastRows, lastColumns
-    if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
+    if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && initArray([range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1]).max() > 1)) {
       const cacheKey = `headers_${this.spreadsheetId}_${sheet}_mix_${this.headerRow.filter(key => sheet.includes(key)).map((sheet, headerRow) => `${sheet}:${headerRow}`).join(',') || ranges[0].at(-1).headerRow || 1}`
       if (!this.cache[cacheKey]) {
         const headerRows = sheet.mapToObject(sheet => ({ [sheet]: this.headerRow[sheet] ?? ranges.find(range => range[0] === sheet).at(-1)?.headerRow ?? 1 })),
@@ -1692,14 +1694,14 @@ class SpreadsheetManipulation {
           Logger.log(range)
         const options = range.at(-1)
         let {
-          endColumn = null,
-          endRow = null,
-          untilLastRow = false,
-          isLastHeader = false,
-          rowCount = null,
-          columnCount = null,
-          headerOrder = 1
-        } = isObject(options) ? options : {},
+            endColumn = null,
+            endRow = null,
+            untilLastRow = false,
+            isLastHeader = false,
+            rowCount = null,
+            columnCount = null,
+            headerOrder = 1
+          } = isObject(options) ? options : {},
           startColumn = range[2]
         if (isAllArray(startColumn, endColumn) && startColumn?.length < endColumn?.length)
           throw Error(`Tidak valid. Jumlah endColumns lebih banyak dari startColumns.`)
@@ -1715,8 +1717,8 @@ class SpreadsheetManipulation {
             column = column.toString()
           const startColumnNum = typeof column === 'string' && column.length > 1
             ? (isLastHeader
-              ? headers?.[range[0]]?.lastIndexOf(column)
-              : headers?.[range[0]]?.findIndexInOrder(column, headerOrder)) + 1
+            ? headers?.[range[0]]?.lastIndexOf(column)
+            : headers?.[range[0]]?.findIndexInOrder(column, headerOrder)) + 1
             : column || lastColumns[range[0]]
           if (!startColumnNum) {
             Logger.log(`DEBUG: sheet: ${range[0]} column=${JSON.stringify(column)}, headers=${JSON.stringify(headers?.[range[0]])}, startColumnNum=${startColumnNum}`)
@@ -1731,8 +1733,8 @@ class SpreadsheetManipulation {
               endColumnLocal = endColumnLocal.toString()
             const endColumnNum = typeof endColumnLocal === 'string' && endColumnLocal.length > 1
               ? (isLastHeader
-                ? headers?.[range[0]]?.lastIndexOf(endColumnLocal)
-                : headers?.[range[0]]?.findIndexInOrder(endColumnLocal, headerOrder)) + 1
+              ? headers?.[range[0]]?.lastIndexOf(endColumnLocal)
+              : headers?.[range[0]]?.findIndexInOrder(endColumnLocal, headerOrder)) + 1
               : endColumnLocal || lastColumns[range[0]]
             if (!endColumnNum) {
               Logger.log(`Sheet ${range[0]} tidak memiliki kolom ${endColumnLocal}. Range dilewati`)

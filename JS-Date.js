@@ -58,14 +58,20 @@ class MLDate extends Date {
 }
 
 /**
- * @param {number|string|Date|MLDate} value
+ * @param {number|string|Date|MLDate|{year?: number, month?: number|string, date?: number}} value
  * @return {MLDate}
  */
 function initDate(...value) {
-  if (value.length)
-    return new MLDate(...value)
-  else
-    return new MLDate()
+  switch (true) {
+    case isObject(value[0]):
+      const today = new MLDate(),
+        { date = today.date, month = today.month, year = today.year } = value[0]
+      return new MLDate(year, (typeof month === 'string' ? longMonths.get(month) : month) - 1, date)
+    case !!value.length:
+      return new MLDate(...value)
+    default:
+      return new MLDate()
+  }
 }
 
 /** @type {MLArray<string>} */
@@ -79,22 +85,6 @@ var longMonths = MLArray.init([
   'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
   'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
 ])
-
-/**
- * @param {{input?: string|Date, format: string}} options
- */
-function formatDate(options = {}) {
-  const { input = null, format } = options
-  return Utilities.formatDate(
-    input
-      ? typeof input === 'string'
-        ? new Date(input)
-        : input
-      : new Date(),
-    'Asia/Jakarta',
-    format
-  )
-}
 
 /**
  * Convert tanggal dalam bentuk angka dari spreadsheet ke objek MLDate

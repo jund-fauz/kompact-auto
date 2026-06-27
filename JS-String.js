@@ -45,11 +45,16 @@ class MLString extends String {
 
   /**
    * Mengecek apakah suatu teks ada di dalam teks lain
-   * @param {string[]} searchValues
+   * @param {string[]|{logic?: And|Or|string}} searchValues
    * @return {boolean}
    */
   includes(...searchValues) {
-    return flat(searchValues).every(searchValue => super.includes(searchValue))
+    const { logic = And } = getOptions(searchValues),
+      process = searchValue => super.includes(searchValue)
+    searchValues = searchValues.lazyFlat()
+    return logic === And
+      ? searchValues.every(process)
+      : searchValues.some(process)
   }
 
   /**
@@ -59,9 +64,10 @@ class MLString extends String {
   endWith(...searchValues) {
     const { logic = And, caseInsensitive = false } = getOptions(searchValues),
       process = searchValue => caseInsensitive ? this.toLowerCase().endsWith(searchValue.toLowerCase()) : this.endsWith(searchValue)
+    searchValues = searchValues.lazyFlat()
     return logic === And
-      ? flat(searchValues).every(process)
-      : flat(searchValues).some(process)
+      ? searchValues.every(process)
+      : searchValues.some(process)
   }
 
   /**
@@ -87,7 +93,7 @@ function initString(value) {
  * @return {string}
  */
 function formatNumber(number, digitCount = 2) {
-  return String(number).padStart(digitCount, '0')
+  return initString(number).formatNumber(digitCount)
 }
 
 /**

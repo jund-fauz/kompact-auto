@@ -21,19 +21,12 @@ class MLObject {
    * @param {Object<string, T>} object
    */
   constructor(object) {
-    this.object = object
-    this.entriesVersion = null
-    this.valuesVersion = []
-    this.keysVersion = []
-    this.forEach((key, value) => {
-      if (!(key in this))
-        this[key] = value
-    })
+    this.add(object)
   }
 
   /**
    * Membalikkan { key: value } di Object menjadi { value: key }
-   * @return {Object<T, string>}
+   * @return {MLObject<T, string>}
    */
   reverse() {
     return this.reEntries((key, value) => [value, key])
@@ -124,7 +117,7 @@ class MLObject {
    * @return {MLString|MLString[]}
    */
   getKeyByValue(...values) {
-    values = flat(values)
+    values = values.lazyFlat()
     const result = this.filter((key, value) => values.includes(value)).map(key => initString(key))
     return result.length > 1 ? result : result[0]
   }
@@ -171,6 +164,20 @@ class MLObject {
       case mlArray:
         return this.reEntries((key, value) => [key, initArray(value)])
     }
+  }
+
+  /**
+   * @param {Object|MLObject} otherObject
+   */
+  add(otherObject) {
+    if (otherObject)
+      otherObject = otherObject.object
+    this.object = otherObject
+    this.reset()
+    this.forEach((key, value) => {
+      if (!(key in this))
+        this[key] = value
+    })
   }
 }
 

@@ -31,18 +31,12 @@ function getEventDetail(e, options = {}) {
 
 /**
  * @param {Event} e
+ * @param {{columnInLetter: boolean}} options
  * @return {Object}
  */
-function getRemoteEventDetail(e) {
-  const range = e.range,
-    sheet = range.getSheet().getName()
+function getRemoteEventDetail(e, options = {}) {
   return {
     spreadsheetId: e.source.getId(),
-    sheet,
-    range: `${sheet}!${range.getA1Notation()}`,
-    row: range.getRow(),
-    user: e.user.getEmail(),
-    column: getColumnLetter(range.getColumn()),
-    value: range.getValue()
+    ...getEventDetail(e,  options)
   }
 }
