@@ -10,7 +10,7 @@
  *   headerRow?: number,
  *   headerOrder?: number
  *  }} RangeOptions
- *  @typedef {[number,string|number,RangeOptions?]|[number,string|number,RangeOptions?][]|string|string[]} RawRange
+ *  @typedef {[number,string|number|string[]|number[],RangeOptions?]|[number,string|number|string[]|number[],RangeOptions?][]|string|string[]} RawRange
  *  @typedef {PasteNormal|PasteFormula|PasteFormat|string} PasteType
  *  @typedef {Formatted|Unformatted|Formula|string} ValueRenderOption
  *  @typedef {Horizontal|Vertical|string} Stack
@@ -24,7 +24,7 @@
  *  stack?: Stack,
  *  vro?: ValueRenderOption,
  *  fillEmpty?: boolean,
- *  withHeader?: boolean,
+ *  assignKeyWith?: Sheet|Header|string,
  *  sheet?: SheetType
  * }} ValuesOption
  * @typedef {{
@@ -36,7 +36,7 @@
  *   withoutRetry?: boolean,
  *   afterRun?: function,
  *   withLog?: boolean,
- *   headerRow?: Object<string,number>
+ *   headerRow?: MLObject<string,number>
  * }} SpreadsheetManipulationOptions
  * @typedef {{except?: SheetType, includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} ProcessRangeOptions
  */
@@ -58,11 +58,11 @@ class SpreadsheetManipulation {
       withoutRetry = false,
       afterRun = null,
       withLog = true,
-      headerRow = {}
+      headerRow = initObject()
     } = options
-    this.requests = MLArray.init(requests ?? [])
-    this.valueRequests = MLArray.init(valueRequests ?? [])
-    this.emptyValueRequests = MLArray.init([])
+    this.requests = initArray(requests ?? [])
+    this.valueRequests = initArray(valueRequests ?? [])
+    this.emptyValueRequests = initArray([])
     this.customRequests = customRequests ?? {}
     this.responses = []
     this.spreadsheet = spreadsheetIdOrTitle ?? SpreadsheetApp.getActiveSpreadsheet().getId()
@@ -83,8 +83,7 @@ class SpreadsheetManipulation {
       this.afterRun = afterRun
     if (!this.spreadsheetId)
       throw Error('Tidak ada spreadsheet yang sedang aktif saat ini.')
-    if (sheet)
-      this.selectSheet(sheet, except)
+    this.selectSheet(sheet ?? 'INITIALIZATION', except)
   }
 
   /**
@@ -110,40 +109,41 @@ class SpreadsheetManipulation {
     switch (sheet) {
       case Daily:
         /** @type {MLArray<string>} */
-        this.sheet = MLArray.init(iterate(i => `${i}`, { until: 31 }))
+        this.sheet = initArray(iterate(i => `${i}`, { until: 31 }))
         break
       case Monthly:
-        this.sheet = MLArray.init(shortMonths)
+        this.sheet = shortMonths
         break
       case Active:
-        this.sheet = MLArray.init(this.selectedSheet().getName())
-        this.sheetId = initObject({ [this.sheet[0]]: this.selectedSheet().getSheetId() })
-        return this
+        this.sheet = initArray(this.selectedSheet().getName())
+        break
       case All:
         this.sheet = cache.keys()
         break
       default:
-        this.sheet = MLArray.init(sheet).castToString().unique()
+        this.sheet = initArray(sheet).castToString().unique()
     }
+
+    if (!this.sheetId)
+      this.sheetId = cache
 
     cache.keys().forEach(key => {
       if (!this.sheet.includes(key))
         cache.delete(key)
     })
 
+    if (except) {
+      except = initArray(except)
+      this.sheet.filter(sheet => !except.includes(sheet))
+      except.iterate(name => cache.delete(name))
+    }
+
     if (this.withLog)
       Logger.log(cache.keys())
 
-    if (cache.keys().length !== this.sheet.length)
+    if (cache.keys().length !== this.sheet.length && sheet !== 'INITIALIZATION')
       Logger.log(`Sheet ${this.sheet.immutableFilter(sheet => !cache.keysVersion.includes(sheet)).join()} tidak ada. SKIP.`)
 
-    if (except) {
-      except = MLArray.init(except)
-      this.sheet.filter(sheet => !except.includes(sheet))
-      except.forEach(name => cache.delete(name))
-    }
-
-    this.sheetId = cache
     return this
   }
 
@@ -223,10 +223,10 @@ class SpreadsheetManipulation {
    */
   headers(options = {}) {
     const {
-        headerRow = this.headerRow[this.sheet.join(', ')] ?? 1,
-        unshiftCounts = 1,
-        sheet = this.sheet[0]
-      } = options,
+      unshiftCounts = 1,
+      sheet = this.sheet[0],
+      headerRow = this.headerRow[sheet] ?? 1
+    } = options,
       cacheKey = `${this.spreadsheetId}_${sheet}_${headerRow}`,
       cache = getGlobalCache()
     if (!cache.headers[cacheKey])
@@ -268,15 +268,15 @@ class SpreadsheetManipulation {
    */
   column(columnName, options = {}) {
     const {
-        headerRow = this.headerRow[this.sheet.join(', ')] ?? 1,
-        isLastHeader = false,
-        isLetter = false,
-        unshiftCounts = 1,
-        withHeader = false,
-        prefix = '',
-        lastHeaderPrefix = '',
-        sheet = this.sheet[0]
-      } = options,
+      isLastHeader = false,
+      isLetter = false,
+      unshiftCounts = 1,
+      withHeader = false,
+      prefix = '',
+      lastHeaderPrefix = '',
+      sheet = this.sheet[0],
+      headerRow = this.headerRow[sheet] ?? 1
+    } = options,
       headers = this.headers({ headerRow, sheet, unshiftCounts }),
       cols = []
     columnName = lazyWrap(columnName)
@@ -369,24 +369,24 @@ class SpreadsheetManipulation {
    * @template T
    * @param {RawRange} ranges
    * @param {ValuesOption} options
-   * @return {MLArray<T>|MLArray<T[]>|MLObject|{[key: string]: MLArray<T>}}
+   * @return {MLArray<T>|MLArray<T[]>|MLObject<MLArray<T>>}
    */
   values(ranges, options = {}) {
     ranges = lazyWrap(ranges)
     if (!ranges.some(isArray))
       ranges = wrap(ranges)
     const {
-        isAll = false,
-        notFiltered = false,
-        filterViewName = null,
-        withRows = false,
-        dateFormat = '',
-        stack = Horizontal,
-        vro = Formatted,
-        fillEmpty = true,
-        withHeader = false,
-        ...rest
-      } = isEmpty(options) ? this.valuesOption : options,
+      isAll = false,
+      notFiltered = false,
+      filterViewName = null,
+      withRows = false,
+      dateFormat = '',
+      stack = Horizontal,
+      vro = Formatted,
+      fillEmpty = true,
+      assignKeyWith = null,
+      ...rest
+    } = isEmpty(options) ? this.valuesOption : options,
       /**
        * @template T
        * @param {T[][]} vals
@@ -398,65 +398,38 @@ class SpreadsheetManipulation {
           vals = vals.concat(repeat(() => [], rowCount - vals.length))
         return vals.length ? vals : repeat(() => [], rowCount === Infinity ? 1 : rowCount)
       }
-    let headerRow = this.headerRow[this.sheet.join(', ')] ?? 1,
+    let headerRow = this.headerRow[this.sheet[0]] ?? 1,
       columns = [],
       sampleRange = '',
-      {
-        sheet = this.sheet,
-        ...optionsForAPI
-      } = rest
+      sheets = initArray(),
+      { sheet = this.sheet, ...optionsForAPI } = rest
     if (ranges.every(isArray))
       headerRow = unique(ranges.map(range => range.at(-1).headerRow))[0] ?? 1
     ranges = this.processRange(ranges, { sheet })
-    const isRangesAnArray = isArray(ranges)
-    if (notFiltered || withHeader) {
-      sampleRange = isRangesAnArray ? ranges[0] : ranges
-      sheet = (isRangesAnArray ? ranges[0] : ranges).split('!')[0]
+    if (notFiltered || assignKeyWith === Header) {
+      sampleRange = ranges[0]
+      sheet = sampleRange.split('!')[0]
     }
-    if (filterViewName || withHeader)
+    if (filterViewName || assignKeyWith === Header)
       columns = ranges.map(range => editRange(range, { withLog: this.withLog }).column({ withLastColumn: true }))
-    let values = (isRangesAnArray
-      ? spreadsheet.Values.batchGet(this.spreadsheetId, {
-        ranges, ...optionsForAPI,
-        valueRenderOption: vro
-      }).valueRanges.map((result, index) => {
-        let vals = result.values || []
-        const rowCount = editRange(ranges[index]).rowCount()
-        return dataProcess(vals, rowCount)
-      })
-      : (() => {
-        const dSRange = editRange(ranges, { withLog: this.withLog })
-        let rowCount = dSRange.rowCount({ needToFind: true }),
-          currentRow = dSRange.row(), result = []
-        if (rowCount <= 5000)
-          result = spreadsheet.Values.get(this.spreadsheetId, ranges, {
-            ...optionsForAPI,
-            valueRenderOption: vro
-          }).values || []
-        else {
-          if (rowCount === Infinity)
-            rowCount = this.max(Row)
-          while (currentRow < rowCount) {
-            let endRow = currentRow + 4999
-            if (endRow > rowCount)
-              endRow = rowCount
-            result.push(...(spreadsheet.Values.get(this.spreadsheetId, ranges.replace(/[0-9]+:/, `${currentRow}:`).replace(/[0-9]*$/, `${endRow}`), {
-              ...optionsForAPI,
-              valueRenderOption: vro
-            }).values || [[]]))
-            currentRow += 5000
-          }
-        }
-        return dataProcess(result, rowCount)
-      })()).asMLArray()
+    let values = initArray(spreadsheet.Values.batchGet(this.spreadsheetId, {
+      ranges, ...optionsForAPI,
+      valueRenderOption: vro
+    }).valueRanges.map((result, index) => {
+      let vals = result.values || []
+      const rowCount = editRange(ranges[index]).rowCount()
+      if (assignKeyWith === Sheet)
+        sheets.push(result.range.split('!')[0])
+      return dataProcess(vals, rowCount)
+    }))
     if (this.withLog)
       Logger.log('Options: ' + JSON.stringify(options))
     let combinedHeaders = [], widths
-    if (isAll && isRangesAnArray && stack === Horizontal)
+    if (assignKeyWith === Header || (isAll && stack === Horizontal))
       widths = ranges.map((range, no) => max(editRange(range, { withLog: this.withLog }).columnCount()))
-    if (isAll && withHeader) {
+    if (assignKeyWith === Header) {
       const headers = this.headers({ sheet, headerRow, unshiftCounts: 0 })
-      combinedHeaders = isRangesAnArray && stack === Horizontal
+      combinedHeaders = stack === Horizontal
         ? ranges.flatMap((range, no) => {
           const startCol = editRange(range, { withLog: this.withLog }).column() || 1,
             sliced = headers.slice(startCol, startCol + widths[no])
@@ -465,8 +438,8 @@ class SpreadsheetManipulation {
         : headers.slice(columns[0][0], columns.at(-1)[1])
     }
     if (values.length)
-      if (isAll && isRangesAnArray)
-        if (stack === Vertical)
+      if (isAll)
+        if (stack === Vertical && assignKeyWith !== Sheet)
           values = values.flat(1)
         else if (fillEmpty) {
           const totalWidth = sum(widths),
@@ -489,11 +462,11 @@ class SpreadsheetManipulation {
           values = newValues
         } else
           values = MLArray.from({ length: max(values.map(block => block.length)) }, (_, row) => values.map(block => (block[row] || [])).lazyFlat())
-      else if (!isAll || !isRangesAnArray) {
-        if (isRangesAnArray) values = values.flat(1)
+      else {
+        values = values.flat(1)
         if (fillEmpty)
           values = values.map(row => row?.length ? row : [''])
-        if (!isAll) values = values.flat(1)
+        values = values.flat(1)
       }
     if (notFiltered) {
       let rangeRows = editRange(sampleRange, { withLog: this.withLog }).row({ withLastRow: true }),
@@ -555,11 +528,11 @@ class SpreadsheetManipulation {
         let rowMetadata = []
         try {
           const sheetsData = this.get({
-            ranges: isRangesAnArray ? ranges : [ranges],
+            ranges,
             fields: 'sheets(data(rowMetadata(hiddenByFilter)))',
             sheet
           }).sheets[0].data
-          rowMetadata = isRangesAnArray && isAll && stack === Vertical
+          rowMetadata = isAll && stack === Vertical
             ? sheetsData.map(data => data.rowMetadata || []).flat(1)
             : sheetsData[0].rowMetadata || []
           values.filter((_, index) => {
@@ -595,18 +568,24 @@ class SpreadsheetManipulation {
       else
         values = currentValues
     }
-    if (isAll && withHeader) {
-      const tempValues = {}
-      combinedHeaders.forEach((header, index) => {
-        // if (columns.every(column => !between(column[0], index, column[1]))) return
-        const result = (values?.rows ? values.values : values).map(value => value[index])
-        tempValues[initString(header).toCamelCase()] = result.length > 1 ? result : result[0]
-      })
+    let tempValues = {}
+    switch (assignKeyWith) {
+      case Header:
+        combinedHeaders.forEach((header, index) => {
+          // if (columns.every(column => !between(column[0], index, column[1]))) return
+          const result = (values?.rows ? values.values : values).map(value => value[index])
+          tempValues[initString(header).toCamelCase()] = result.length > 1 ? result : result[0]
+        })
+        break
+      case Sheet:
+        sheets.iterate((sheet, no) => tempValues[sheet] = (values?.rows ? values.values : values)[no])
+        break
+    }
+    if (assignKeyWith)
       if (values?.rows)
         values.values = tempValues
       else
         values = tempValues
-    }
     return !values ? [] : trim(values)
   }
 
@@ -616,7 +595,7 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   duplicateSheet(newName) {
-    const { sheetId } = spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, this.sheetId.values()[0]),
+    const { sheetId } = spreadsheet.Sheets.copyTo({ destinationSpreadsheetId: this.spreadsheetId }, this.spreadsheetId, this.sheetId[this.sheet[0]]),
       cache = getGlobalCache()[CacheType.SheetIds][this.spreadsheetId]
     if (cache)
       cache[newName] = sheetId
@@ -635,7 +614,7 @@ class SpreadsheetManipulation {
       requests: [{
         updateSheetProperties: {
           properties: {
-            sheetId: this.sheetId.values()[0],
+            sheetId: this.sheetId[this.sheet[0]],
             title: newName.toString()
           },
           fields: 'title'
@@ -669,16 +648,18 @@ class SpreadsheetManipulation {
    */
   search(startRowOrRow, startColumnOrColumn, searchValues, type, options = {}) {
     const {
-        sheet = this.sheet[0],
-        headerRow = this.headerRow[sheet] ?? 1,
-        isLastHeader = false,
-        defaultValue = 0
-      } = options,
+      sheet = this.sheet[0],
+      headerRow = this.headerRow[sheet] ?? 1,
+      isLastHeader = false,
+      defaultValue = 0
+    } = options,
       /** @type {RangeOptions} */
       optionsForRange = {
         headerRow,
         isLastHeader
       }
+    if (this.withLog)
+      Logger.log(headerRow)
     switch (type) {
       case Column:
         optionsForRange.endColumn = 0
@@ -700,9 +681,11 @@ class SpreadsheetManipulation {
         result = range.createTextFinder('.+').matchEntireCell(true).useRegularExpression(true).findPrevious()?.getRow() + !searchValues[i]
       else
         result = range.createTextFinder(searchValues[i]).matchEntireCell(true).findNext()?.getRow()
+      if (this.withLog)
+        Logger.log(`Hasil pencarian ke-${i + 1}: ${result}`)
       i++
     }
-    return result || defaultValue
+    return result ?? defaultValue
   }
 
   /**
@@ -744,9 +727,9 @@ class SpreadsheetManipulation {
     if (!('alpha' in color))
       color.alpha = 1
     return this.addRequests(
-      this.sheetId.values().map(sheetId => ({
+      this.sheet.map(sheet => ({
         repeatCell: {
-          range: this.toGridRange(sheetId, range),
+          range: this.toGridRange(sheet, range),
           cell: {
             userEnteredFormat: {
               textFormat: {
@@ -770,10 +753,10 @@ class SpreadsheetManipulation {
     if (isString(column))
       column = getColumnNum(column)
     return this.addRequests(
-      this.sheetId.values().map(sheetId => ({
+      this.sheet.map(sheet => ({
         updateDimensionProperties: {
           range: {
-            sheetId,
+            sheetId: this.sheetId[sheet],
             dimension: 'COLUMNS',
             startIndex: column - 1,
             endIndex: column
@@ -793,9 +776,9 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   autoFill(range) {
-    return this.addRequests(this.sheetId.values().map(sheetId => ({
+    return this.addRequests(this.sheet.map(sheet => ({
       autoFill: {
-        range: this.toGridRange(sheetId, range),
+        range: this.toGridRange(sheet, range),
         useAlternateSeries: false
       }
     })))
@@ -945,16 +928,21 @@ class SpreadsheetManipulation {
       targetSheet = this.sheet.immutableFilter(name => name !== sourceSheet),
       targetRange = null
     } = options
-    targetSheet = lazyWrap(targetSheet)
-    if (typeof sourceSheet === 'number')
-      sourceSheet = sourceSheet.toString()
-    return this.addRequests(targetSheet.map(name => ({
-      copyPaste: {
-        source: this.toGridRange(sourceSheet ?? name, range),
-        destination: this.toGridRange(name, targetRange ?? range),
-        pasteType
+    range = this.processRange(range, { sheet: sourceSheet })
+    targetRange = this.processRange(targetRange ?? range, { sheet: targetSheet })
+    const sameLength = range.length === targetRange.length
+    let sourceIndex = 0
+    return this.addRequests(targetRange.map((rangeWithSheet, no) => {
+      const [sourceSheet, sourceRange] = (sameLength ? range[no] : (range[sourceIndex++] ?? range[(sourceIndex = 0)])).split('!'),
+        [targetSheet, targetRange] = rangeWithSheet.split('!')
+      return {
+        copyPaste: {
+          source: this.toGridRange(sourceSheet, sourceRange),
+          destination: this.toGridRange(targetSheet, targetRange ?? sourceRange),
+          pasteType
+        }
       }
-    })))
+    }))
   }
 
   /**
@@ -964,9 +952,9 @@ class SpreadsheetManipulation {
    * @return {SpreadsheetManipulation}
    */
   formatDate(range, format) {
-    const add = id => ({
+    const add = sheet => ({
       repeatCell: {
-        range: this.toGridRange(id, range),
+        range: this.toGridRange(sheet, range),
         cell: {
           userEnteredFormat: {
             numberFormat: {
@@ -978,7 +966,7 @@ class SpreadsheetManipulation {
         fields: 'userEnteredFormat.numberFormat'
       }
     })
-    return this.addRequests(this.sheetId.values().map(add))
+    return this.addRequests(this.sheet.map(add))
   }
 
   /**
@@ -1000,22 +988,22 @@ class SpreadsheetManipulation {
 
     let add
     if (type === Sheet) {
-      add = id => ({
+      add = sheet => ({
         updateSheetProperties: {
           properties: {
-            sheetId: id,
+            sheetId: this.sheetId[sheet],
             hidden: !view
           },
           fields: 'hidden'
         }
       })
-      return this.addRequests(this.sheetId.entries().immutableFilter(([key, _]) => !except.includes(key)).map(([_, value]) => add(value)))
+      return this.addRequests(this.sheet.immutableFilter(sheet => !except.includes(sheet)).map(add))
     } else {
       columnOrRow--
-      add = id => ({
+      add = sheet => ({
         updateDimensionProperties: {
           range: {
-            sheetId: id,
+            sheetId: this.sheetId[sheet],
             dimension: type,
             startIndex: columnOrRow,
             endIndex: columnOrRow + count
@@ -1026,7 +1014,7 @@ class SpreadsheetManipulation {
           fields: 'hiddenByUser'
         }
       })
-      return this.addRequests(this.sheetId.values().map(add))
+      return this.addRequests(this.sheet.map(add))
     }
   }
 
@@ -1046,10 +1034,10 @@ class SpreadsheetManipulation {
       else throw Error(`Baris ${columnOrRow} tidak valid`)
 
     const { count = 1, inherit = true } = options,
-      add = id => ({
+      add = sheet => ({
         insertDimension: {
           range: {
-            sheetId: id,
+            sheetId: this.sheetId[sheet],
             dimension: type,
             startIndex: columnOrRow,
             endIndex: columnOrRow + count
@@ -1057,7 +1045,7 @@ class SpreadsheetManipulation {
           inheritFromBefore: inherit
         }
       })
-    return this.addRequests(this.sheetId.values().map(add))
+    return this.addRequests(this.sheet.map(add))
   }
 
   /**
@@ -1071,11 +1059,12 @@ class SpreadsheetManipulation {
       throw Error('Tipe belum didefinisikan')
     else if (notSameWith(type, Column, Row))
       throw Error(`Tipe ${type} tidak valid.`)
+    range = this.processRange(range)
 
     return this.addRequests(
-      this.sheetId.values().map(sheetId => ({
+      range.map(range => ({
         insertRange: {
-          range: this.toGridRange(sheetId, this.processRange(range)[0]),
+          range: this.toGridRange(...range.split('!')),
           shiftDimension: type
         }
       }))
@@ -1109,13 +1098,13 @@ class SpreadsheetManipulation {
         throw Error('Minimal 2 kolom untuk di-sort dengan posisi kosong di atas menggunakan array. Jika ingin menggunakan 1 kolom, masukkan sebagai string biasa.')
 
     const {
-        startRow = 2,
-        isAscending = true,
-        ascendingSortCol = null,
-        hideProcessed = false,
-        sheet = this.sheet[0],
-        headerRow = this.headerRow[sheet] ?? 1
-      } = options,
+      startRow = 2,
+      isAscending = true,
+      ascendingSortCol = null,
+      hideProcessed = false,
+      sheet = this.sheet[0],
+      headerRow = this.headerRow[sheet] ?? 1
+    } = options,
       headers = this.headers({ headerRow }),
       helperColName = 'FILTER HELPER',
       beforeEmptyRow = this.search(startRow, notEmptyColumnTitle, '', Row, { sheet }) - 1,
@@ -1174,7 +1163,7 @@ class SpreadsheetManipulation {
       const filterCriteria = column => ({
         [headers.indexOf(column) - 1]: {
           condition: {
-            type: ConditionType.B
+            type: Blank
           }
         }
       })
@@ -1182,10 +1171,10 @@ class SpreadsheetManipulation {
         setBasicFilter: {
           filter: {
             range: this.toGridRange(sheet, [startRow - 1, startColumnTitle, {
-                untilLastRow: true,
-                headerRow,
-                endColumn: endColumnTitle
-              }]
+              untilLastRow: true,
+              headerRow,
+              endColumn: endColumnTitle
+            }]
             ),
             criteria: isArray(sortByColumnTitle)
               ? Object.assign({}, ...sortByColumnTitle.map(filterCriteria))
@@ -1198,14 +1187,14 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Menerapkan basic filter pada range berdasarkan kolom dan condition type tertentu.
-   * @param {string|Object[]} ranges
+   * Menerapkan basic filter pada range berdasarkan kolom dan kriteria tertentu.
+   * @param {RawRange} ranges
    * @param {number|string} column
-   * @param {ConditionType} condition
+   * @param {GoogleAppsScript.Sheets.Schema.FilterCriteria} criteria
    * @param {{resetFilter?: boolean}} options
    * @return {SpreadsheetManipulation}
    */
-  filter(ranges, column, condition, options = {}) {
+  filter(ranges, column, criteria, options = {}) {
     const rangeOptions = {}
     if (typeof ranges !== 'string') {
       const { headerRow = this.headerRow[this.sheet.join(', ')] ?? 1, isLastHeader = false } = isObject(ranges.at(-1))
@@ -1242,11 +1231,7 @@ class SpreadsheetManipulation {
           filter: {
             range: gridRange,
             criteria: {
-              [columnObject[gridRange.sheetId] - 1]: {
-                condition: {
-                  type: condition
-                }
-              }
+              [columnObject[gridRange.sheetId] - 1]: criteria
             }
           }
         }
@@ -1374,86 +1359,44 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Menulis satu nilai ke satu atau banyak range, mendukung function callback untuk dynamic values.
+   * Menulis satu nilai ke satu atau banyak range, mendukung function callback untuk dynamic values, dan mendukung multi-range dengan distribusi values otomatis.
    * @param {RawRange} ranges
-   * @param {Object|Object[]|Object[][]|Function} values
-   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean, isRaw?: boolean}} options
-   * @return {SpreadsheetManipulation}
-   */
-  setValue(ranges, values, options = {}) {
-    const isValuesArray = isArray(values)
-    if (this.isRangesAnArray(ranges) && isTypeOf('string', ...ranges) && isValuesArray && ranges.length !== values.length)
-      throw Error('Jumlah value dan range yang dimasukkan sebagai parameter tidak sama.')
-    const { isRaw = false, ...rest } = options
-    ranges = this.processRange(ranges, rest)
-    const isValues2d = isValuesArray && values.every(isArray)
-    let currentNo = 0, currentSheet = null
-    if (this.withLog)
-      Logger.log(`Value: ${values}\nTipe Value: ${typeof values}\nIs Value Function: ${typeof values === 'function'}`)
-    this.addValueRequests(
-      ranges.map((/** @type {string} */ range) => {
-        const sheet = range.split('!')[0]
-        if (sheet !== currentSheet) {
-          currentSheet = sheet
-          currentNo = 0
-        } else
-          currentNo++
-        const dsRange = editRange(range, { withLog: this.withLog }),
-          rowCount = dsRange.rowCount(),
-          calculatedValues = typeof values === 'function'
-            ? values(sheet, dsRange.column({ isLetter: true }), dsRange.row())
-            : values,
-          isCalculated2d = isArray(calculatedValues) && calculatedValues.every(isArray)
-        if (this.withLog)
-          Logger.log(`Calculated Values: ${calculatedValues}`)
-        return {
-          range,
-          values: isValues2d
-            ? values
-            : isCalculated2d
-              ? calculatedValues
-              : repeat(wrap(calculatedValues), rowCount)
-        }
-      })
-    )
-    return this
-  }
-
-  /**
-   * Menulis array 2D values ke range, mendukung multi-range dengan distribusi values otomatis.
-   * @param {string|string[]|Object[]|Object[][]} ranges
    * @param {Object|Object[]|Object[][]|Object[][][]} values
-   * @param {{except?: string|string[], includeInvalid?: boolean, sheet?: SheetType, withoutSheet?: boolean}} options
+   * @param {ProcessRangeOptions|{isRaw?: boolean}} options
    * @return {SpreadsheetManipulation}
    */
   setValues(ranges, values, options = {}) {
     const isValuesArray = isArray(values),
       isValues2d = isValuesArray && values.every(isArray),
-      isRangesAnArray = this.isRangesAnArray(ranges)
+      isRangesAnArray = this.isRangesAnArray(ranges),
+      { isRaw = false, ...rest } = options
     if (isRangesAnArray && isTypeOf('string', ...ranges) && isValues2d && ranges.length !== values.length)
       throw Error('Jumlah value dan range yang dimasukkan sebagai parameter tidak sama.')
-    ranges = this.processRange(ranges, options)
-    let currentNo = 0, currentSheet = null
+    ranges = this.processRange(ranges, rest)
     this.addValueRequests(
-      ranges.map(/** @type {string} */range => {
-        const sheet = range.split('!')[0]
-        if (sheet !== currentSheet) {
-          currentSheet = sheet
-          currentNo = 0
-        } else
-          currentNo++
+      ranges.map((range, no) => {
         const dsRange = editRange(range, { withLog: this.withLog }),
           rowCount = dsRange.rowCount(),
           columnCount = dsRange.columnCount()
+        if (typeof values === 'function') {
+          const calculatedValues = values(range.split('!')[0], dsRange.column({ isLetter: true }), dsRange.row()),
+            isCalculated2d = isArray(calculatedValues) && calculatedValues.every(isArray)
+          return {
+            range,
+            values: isCalculated2d
+              ? calculatedValues
+              : repeat(isArray(calculatedValues) ? calculatedValues : repeat(calculatedValues, columnCount), rowCount)
+          }
+        }
         return {
           range,
           values: (isValues2d && isRangesAnArray)
-            ? values[currentNo]?.every(isArray)
-              ? values[currentNo]
-              : repeat(values[currentNo], rowCount)
+            ? values[no]?.every(isArray)
+              ? values[no]
+              : repeat(values[no], rowCount)
             : isValues2d
               ? values
-              : repeat(isValuesArray ? values : repeat(values, columnCount), rowCount)
+              : repeat(isValuesArray ? (isRangesAnArray ? wrap(values[no]) : values) : repeat(values, columnCount), rowCount)
         }
       })
     )
@@ -1561,6 +1504,8 @@ class SpreadsheetManipulation {
    * Mengeksekusi seluruh valueRequests via Sheets.Values.batchUpdate dalam batch.
    */
   processEdit() {
+    if (this.withLog)
+      Logger.log(this.requests)
     while (this.valueRequests.length) {
       Logger.log(`Mengeksekusi ${Math.min(this.batch, this.requests.length)} values update`)
       spreadsheet.Values.batchUpdate({
@@ -1575,6 +1520,8 @@ class SpreadsheetManipulation {
    * @param {any[]} params
    */
   processRequest(...params) {
+    if (this.withLog)
+      Logger.log(this.requests)
     while (this.requests.length) {
       Logger.log(`Mengeksekusi ${Math.min(this.batch, this.requests.length)} request`)
       const toExecuteRequests = this.requests.splice(0, this.batch)
@@ -1590,7 +1537,7 @@ class SpreadsheetManipulation {
 
   /**
    * Menambahkan satu atau banyak request object ke antrian requests setelah di-flat.
-   * @param {Object|Object[]} array
+   * @param {GoogleAppsScript.Sheets.Schema.BatchUpdateSpreadsheetRequest} array
    * @return {SpreadsheetManipulation}
    */
   addRequests(...array) {
@@ -1602,7 +1549,7 @@ class SpreadsheetManipulation {
 
   /**
    * Menambahkan satu atau banyak value update object ke antrian valueRequests.
-   * @param {Object[]|Object[][]} array
+   * @param {GoogleAppsScript.Sheets.Schema.BatchUpdateValuesRequest} array
    * @return {SpreadsheetManipulation}
    */
   addValueRequests(...array) {
@@ -1614,7 +1561,7 @@ class SpreadsheetManipulation {
 
   /**
    * Menambahkan range string ke antrian emptyValueRequests untuk batchClear.
-   * @param {Object[]|Object[][]} array
+   * @param {GoogleAppsScript.Sheets.Schema.BatchClearValuesRequest} array
    * @return {SpreadsheetManipulation}
    */
   addEmptyValueRequests(...array) {
@@ -1703,23 +1650,29 @@ class SpreadsheetManipulation {
     )
 
     let
-      /** @type {MLArray[]} */
+      /** @type {MLObject<MLArray>} */
       headers,
       lastRows, lastColumns
     if (ranges.some(range => isTypeOf('string', range[2], range.at(-1).endColumn, { logic: Or }) && max(range[2]?.length ?? 1, range.at(-1).endColumn?.length ?? 1) > 1)) {
-      const cacheKey = `headers_${this.spreadsheetId}_${sheet}_mix_${this.headerRow[sheet.join(', ')] ?? ranges[0].at(-1).headerRow ?? 1}`
+      const cacheKey = `headers_${this.spreadsheetId}_${sheet}_mix_${this.headerRow.filter(key => sheet.includes(key)).map((sheet, headerRow) => `${sheet}:${headerRow}`).join(',') || ranges[0].at(-1).headerRow || 1}`
       if (!this.cache[cacheKey]) {
-        const row = this.headerRow[sheet.join(', ')] ?? ranges[0].at(-1)?.headerRow ?? 1
+        const headerRows = sheet.mapToObject(sheet => ({ [sheet]: this.headerRow[sheet] ?? ranges.find(range => range[0] === sheet).at(-1)?.headerRow ?? 1 })),
+          [startRow, endRow] = headerRows.values().minMax()
+        /** @type {MLObject} */
         this.cache[cacheKey] =
-          this.values([`${row}:${row}`], {
-            spreadsheetId: this.spreadsheetId,
+          this.values([`${startRow}:${endRow}`], {
             fillEmpty: false,
             isAll: true,
             stack: Vertical,
-            sheet
+            sheet,
+            assignKeyWith: Sheet
           })
+        if (startRow !== endRow)
+          this.cache[cacheKey] = this.cache[cacheKey].reEntries((sheet, datas) => [sheet, datas.get(headerRows[sheet])])
+        Logger.log(this.cache[cacheKey])
       }
-      headers = this.cache[cacheKey].map(array => initArray(array))
+      headers = this.cache[cacheKey]
+      Logger.log(headers.object)
     }
 
     if (ranges.some(range => sameWith(0, range[1], range[2], range.at(-1).endRow, range.at(-1).endColumn, {
@@ -1739,14 +1692,14 @@ class SpreadsheetManipulation {
           Logger.log(range)
         const options = range.at(-1)
         let {
-            endColumn = null,
-            endRow = null,
-            untilLastRow = false,
-            isLastHeader = false,
-            rowCount = null,
-            columnCount = null,
-            headerOrder = 1
-          } = isObject(options) ? options : {},
+          endColumn = null,
+          endRow = null,
+          untilLastRow = false,
+          isLastHeader = false,
+          rowCount = null,
+          columnCount = null,
+          headerOrder = 1
+        } = isObject(options) ? options : {},
           startColumn = range[2]
         if (isAllArray(startColumn, endColumn) && startColumn?.length < endColumn?.length)
           throw Error(`Tidak valid. Jumlah endColumns lebih banyak dari startColumns.`)
@@ -1762,10 +1715,11 @@ class SpreadsheetManipulation {
             column = column.toString()
           const startColumnNum = typeof column === 'string' && column.length > 1
             ? (isLastHeader
-            ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(column)
-            : headers?.[sheet.indexOf(range[0])]?.findIndexInOrder(column, headerOrder)) + 1
+              ? headers?.[range[0]]?.lastIndexOf(column)
+              : headers?.[range[0]]?.findIndexInOrder(column, headerOrder)) + 1
             : column || lastColumns[range[0]]
           if (!startColumnNum) {
+            Logger.log(`DEBUG: sheet: ${range[0]} column=${JSON.stringify(column)}, headers=${JSON.stringify(headers?.[range[0]])}, startColumnNum=${startColumnNum}`)
             Logger.log(`Sheet ${range[0]} tidak memiliki kolom ${column}. Range dilewati`)
             return `${range[0]}!#SKIP#`
           }
@@ -1777,8 +1731,8 @@ class SpreadsheetManipulation {
               endColumnLocal = endColumnLocal.toString()
             const endColumnNum = typeof endColumnLocal === 'string' && endColumnLocal.length > 1
               ? (isLastHeader
-              ? headers?.[sheet.indexOf(range[0])]?.lastIndexOf(endColumnLocal)
-              : headers?.[sheet.indexOf(range[0])]?.findIndexInOrder(endColumnLocal, headerOrder)) + 1
+                ? headers?.[range[0]]?.lastIndexOf(endColumnLocal)
+                : headers?.[range[0]]?.findIndexInOrder(endColumnLocal, headerOrder)) + 1
               : endColumnLocal || lastColumns[range[0]]
             if (!endColumnNum) {
               Logger.log(`Sheet ${range[0]} tidak memiliki kolom ${endColumnLocal}. Range dilewati`)
@@ -1804,7 +1758,7 @@ class SpreadsheetManipulation {
 
   /**
    * Validator helper yang mengecek apakah input ranges berformat array multi-range.
-   * @param {any} ranges
+   * @param {RawRange} ranges
    * @return {boolean}
    */
   isRangesAnArray(ranges) {
@@ -1828,14 +1782,15 @@ class SpreadsheetManipulation {
     return editRange(range, { withLog: this.withLog }).toGrid(sheetId)
   }
 
+  // toDimensionRange(sheet, column, type,)
+
   /**
    * Menyimpan nomor header row untuk sheet pertama yang terseleksi ke cache.
    * @param {number} headerRow
    * @return {SpreadsheetManipulation}
    */
   setHeaderRow(headerRow) {
-    if (!this.headerRow[this.sheet.join(', ')])
-      this.headerRow[this.sheet.join(', ')] = headerRow
+    this.sheet.iterate(sheet => this.headerRow[sheet] = headerRow)
     return this
   }
 }

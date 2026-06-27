@@ -23,6 +23,9 @@ var ui = () => SpreadsheetApp.getUi(),
   array = 'ARRAY',
   object = 'OBJECT',
 
+  /** Type */
+  mlArray = 'MLArray',
+
   /** Sheet Type for Request Builder */
   Daily = 'DAILY',
   Monthly = 'MONTHLY',
@@ -42,6 +45,7 @@ var ui = () => SpreadsheetApp.getUi(),
   Sheet = 'SHEET',
   Column = 'COLUMNS',
   Protection = 'Prot',
+  Header = 'HEADER',
 
   NotEmpty = '#NOT_EMPTY#',
 
@@ -81,7 +85,7 @@ var ui = () => SpreadsheetApp.getUi(),
   PasteFormula = 'PASTE_FORMULA',
   PasteDataValidation = 'PASTE_DATA_VALIDATION',
   PasteConditionalFormatting = 'PASTE_CONDITIONAL_FORMATTING',
-  PasteNoBorders = 'PASTE_NO_BORDERS'
+  PasteNoBorders = 'PASTE_NO_BORDERS',
 
   /** MergeType */
   MergeAll = 'MERGE_ALL',
@@ -94,14 +98,47 @@ var ui = () => SpreadsheetApp.getUi(),
     blue: 1
   },
 
-  /**
-   * @enum {string}
-   */
-  ConditionType = Object.freeze({
-    B: 'BLANK',
-    NB: 'NOT_BLANK',
-    E: 'ERROR',
-  }),
+  /** Filter Condition */
+  DateBefore = 'DATE_BEFORE',
+  DateAfter = 'DATE_AFTER',
+  DateOnOrBefore = 'DATE_ON_OR_BEFORE',
+  DateOnOrAfter = 'DATE_ON_OR_AFTER',
+  DateEq = 'DATE_EQ',
+  DateNotEq = 'DATE_NOT_EQ',
+  DateBetween = 'DATE_BETWEEN',
+  DateNotBetween = 'DATE_NOT_BETWEEN',
+  NumberGreater = 'NUMBER_GREATER',
+  NumberGreaterThanOrEqual = 'NUMBER_GREATER_THAN_OR_EQUAL',
+  NumberLess = 'NUMBER_LESS',
+  NumberLessThanOrEqual = 'NUMBER_LESS_THAN_OR_EQUAL',
+  NumberEq = 'NUMBER_EQ',
+  NumberNotEq = 'NUMBER_NOT_EQ',
+  NumberBetween = 'NUMBER_BETWEEN',
+  NumberNotBetween = 'NUMBER_NOT_BETWEEN',
+  TextContains = 'TEXT_CONTAINS',
+  TextNotContains = 'TEXT_NOT_CONTAINS',
+  TextStartsWith = 'TEXT_STARTS_WITH',
+  TextEndsWith = 'TEXT_ENDS_WITH',
+  TextEq = 'TEXT_EQ',
+  TextIsValidEmail = 'TEXT_IS_VALID_EMAIL',
+  TextIsValidUrl = 'TEXT_IS_VALID_URL',
+  Blank = 'BLANK',
+  NotBlank = 'NOT_BLANK',
+  DateIsValid = 'DATE_IS_VALID',
+  BooleanExpression = 'BOOLEAN_EXPRESSION',
+  OneOfList = 'ONE_OF_LIST',
+  OneOfRange = 'ONE_OF_RANGE',
+  NotOneOfList = 'NOT_ONE_OF_LIST',
+  NotOneOfRange = 'NOT_ONE_OF_RANGE',
+  CustomFormula = 'CUSTOM_FORMULA',
+
+  /** Relative Date Condition */
+  Tomorrow = 'TOMORROW',
+  Today = 'TODAY',
+  Yesterday = 'YESTERDAY',
+  PastWeek = 'PAST_WEEK',
+  PastMonth = 'PAST_MONTH',
+  PastYear = 'PAST_YEAR',
 
   /** Pengkategorian Spreadsheet */
   Lm = ['ANTAM', 'EK', 'EKU', 'SG', 'HA', 'TEMBAGA', 'LM CAMPUR', 'LM VALENT', 'PERAK', 'PERAK STARSILVER', 'CT'],

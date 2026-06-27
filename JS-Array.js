@@ -339,6 +339,14 @@ class MLArray extends Array {
     return Math.max(...this)
   }
 
+  min() {
+    return Math.min(...this)
+  }
+
+  minMax() {
+    return [this.min(), this.max()]
+  }
+
   /**
    * Mengecek tipe data menggunakan "typeof" bawaan JavaScript untuk banyak variabel sekaligus
    * @param {string} type

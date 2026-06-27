@@ -9,11 +9,11 @@
 
 /**
  * @param {Event} e
- * @param {{columnInNumber: boolean}} options
+ * @param {{columnInLetter: boolean}} options
  * @return {Object}
  */
 function getEventDetail(e, options = {}) {
-  const { columnInNumber = false } = options,
+  const { columnInLetter = false } = options,
     range = e.range,
     sheet = range.getSheet().getName(),
     column = range.getColumn()
@@ -21,7 +21,7 @@ function getEventDetail(e, options = {}) {
   return {
     sheet,
     range: `${sheet}!${range.getA1Notation()}`,
-    column: columnInNumber ? column : getColumnLetter(column),
+    column: columnInLetter ? getColumnLetter(column) : column,
     row: range.getRow(),
     user: e.user.getEmail(),
     value: e.value,

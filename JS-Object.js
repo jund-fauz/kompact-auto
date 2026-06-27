@@ -91,10 +91,7 @@ class MLObject {
      * @param {string} key
      * @return {*}
      */
-    const process = key => this[key]/*,
-      processArrayValue = value => isArray(value) && value.length === 1 ? value[0] : value
-    if (isAllArray(this.values()))
-      return this.values().map(processArrayValue)*/
+    const process = key => this[key]
     if (mLArrayKeys.length > 1) {
       const result = mLArrayKeys.map(process)
       return isDeleteNull
@@ -164,6 +161,17 @@ class MLObject {
     }
     return this.reset()
   }
+
+  /**
+   * @param {mlArray|string} type
+   * @return {MLObject<string, MLArray>}
+   */
+  convertValueAs(type) {
+    switch (type) {
+      case mlArray:
+        return this.reEntries((key, value) => [key, initArray(value)])
+    }
+  }
 }
 
 Object.prototype.asMLObject = function () {
@@ -174,7 +182,7 @@ Object.prototype.asMLObject = function () {
  * @param {Object} object
  * @return {MLObject}
  */
-function initObject(object) {
+function initObject(object = {}) {
   return new MLObject(object)
 }
 
