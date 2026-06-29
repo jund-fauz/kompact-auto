@@ -153,15 +153,3 @@ function toA1Notation(sheet, gridRange) {
 
   return sheet + (rangeNotation ? `!${rangeNotation}` : '')
 }
-
-/**
- * @deprecated
- * @param {string} sheetName
- * @param {string} rangeName
- * @param {Object} options
- */
-function getA1NByName(sheetName, rangeName, options = {}) {
-  const { spreadsheetId = null } = options,
-    ssData = spreadsheet.get(spreadsheetId, { fields: 'namedRanges(name,range)' })
-  return ssData.namedRanges?.length ? toA1Notation(sheetName, ssData.namedRanges.find(range => range.name === rangeName).range) : null
-}

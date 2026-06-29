@@ -2,11 +2,11 @@
 /// <reference path="../master-library/DS-Column.js" />
 /// <reference path="../master-library/DS-Range.js" />
 /// <reference path="./GAS-Storage.js" />
-/// <reference path="../master-library/DS2-Event.js" />
-/// <reference path="../master-library/DS2-UI.js" />
-/// <reference path="../master-library/DS3-Proteksi.js" />
-/// <reference path="../master-library/DS4-Email.js" />
-/// <reference path="../master-library/DS5-Request Builder.js" />
+/// <reference path="./DS-Event.js" />
+/// <reference path="./DS-UI.js" />
+/// <reference path="./F-Permission.js" />
+/// <reference path="./DS-Email.js" />
+/// <reference path="./DS-Request Builder.js" />
 /// <reference path="../master-library/F-Drive.js" />
 /// <reference path="../master-library/JS-Array.js" />
 /// <reference path="../master-library/JS-Comparison.js" />

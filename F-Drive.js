@@ -40,7 +40,7 @@ function getFolderIdFromPath(path, options = {}) {
 
 /**
  * @param {string} name Nama harus lengkap dan sama agar file sesuai yang diharapkan
- * @param {string} type
+ * @param {string} type Menggunakan MimeType
  * @param {{ folderPath?: string, folderId?: string, isSharedAccount?: boolean, withLog?: boolean, notRequiredToFound?: boolean }} options
  * @return {string|null}
  */

@@ -340,7 +340,7 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Mengambil timezone spreadsheet dari properties dengan caching.
+   * Mengambil timezone spreadsheet dari properties disertai sistem caching.
    * @return {string}
    */
   timezone() {
@@ -1352,15 +1352,6 @@ class SpreadsheetManipulation {
   }
 
   /**
-   * Mengubah valueInputOption menjadi Raw agar input tidak di-parse oleh Sheets.
-   * @return {SpreadsheetManipulation}
-   */
-  inputAsRaw() {
-    this.vio = Raw
-    return this
-  }
-
-  /**
    * Menulis satu nilai ke satu atau banyak range, mendukung function callback untuk dynamic values, dan mendukung multi-range dengan distribusi values otomatis.
    * @param {RawRange} ranges
    * @param {Object|Object[]|Object[][]|Object[][][]} values
@@ -1411,6 +1402,15 @@ class SpreadsheetManipulation {
    */
   grant() {
     this.customRequests.grant = true
+    return this
+  }
+
+  /**
+   * Mengubah valueInputOption menjadi Raw agar input tidak di-parse oleh Sheets.
+   * @return {SpreadsheetManipulation}
+   */
+  inputAsRaw() {
+    this.vio = Raw
     return this
   }
 
@@ -1613,6 +1613,7 @@ class SpreadsheetManipulation {
       withoutSheet = false
     } = options
     sheet = this.processSheet(sheet, except)
+    const processString = (range)
 
     if (isTypeOf('string', ranges)) {
       if (withoutSheet) return ranges
