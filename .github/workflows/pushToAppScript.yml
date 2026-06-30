@@ -1,5 +1,6 @@
 name: Auto Push Ke App Script
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -20,8 +21,8 @@ jobs:
 
       - name: Setup clasp credentials
         run: |
-          echo "$CLASPRC_JSON" > ~/.clasprc.json |
-          echo "$CLASP_JSON" > ~/.clasp.json
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
+          echo "$CLASP_JSON" > .clasp.json
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
           CLASP_JSON: ${{ secrets.CLASP_JSON }}
