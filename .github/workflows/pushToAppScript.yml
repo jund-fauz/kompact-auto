@@ -20,9 +20,11 @@ jobs:
 
       - name: Setup clasp credentials
         run: |
-          echo "$CLASPRC_JSON" > ~/.clasprc.json
+          echo "$CLASPRC_JSON" > ~/.clasprc.json |
+          echo "$CLASP_JSON" > ~/.clasp.json
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          CLASP_JSON: ${{ secrets.CLASP_JSON }}
 
       - name: Push to App Script
         run: clasp push -f
