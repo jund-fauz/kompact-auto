@@ -139,12 +139,4 @@ var ui = () => SpreadsheetApp.getUi(),
   Yesterday = 'YESTERDAY',
   PastWeek = 'PAST_WEEK',
   PastMonth = 'PAST_MONTH',
-  PastYear = 'PAST_YEAR',
-
-  /** Pengkategorian Spreadsheet */
-  Lm = initArray(['ANTAM', 'EK', 'EKU', 'SG', 'HA', 'TEMBAGA', 'LM CAMPUR', 'LM VALENT', 'PERAK', 'PERAK STARSILVER']),
-  JualBeli = initArray([...Lm, 'CT' ]),
-  Cabang = initArray(['JKT', 'SMG', 'SBY']),
-  Divisi = initArray(['CT', 'LM']),
-  CabangStargold = initArray(['KRANGGAN', 'MAG', 'ROYAL']),
-  Uang = initArray([...Cabang, 'LM'])
+  PastYear = 'PAST_YEAR'
