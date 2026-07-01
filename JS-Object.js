@@ -170,7 +170,7 @@ class MLObject {
    * @param {Object|MLObject} otherObject
    */
   add(otherObject) {
-    if (otherObject)
+    if (otherObject instanceof MLObject)
       otherObject = otherObject.object
     this.object = otherObject
     this.reset()

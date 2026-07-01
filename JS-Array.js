@@ -13,8 +13,8 @@ class MLArray extends Array {
    * @return {MLArray<T>}
    */
   static init(array = [], options = {}) {
-    const { flatting = false, deleteNull = false, unique = false, withLog = false } = options
-    let result = this.from(lazyWrap(array))
+    const { flatting = false, deleteNull = false, unique = false, withLog = false, notSplitString = false } = options
+    let result = this.from(typeof array === 'string' && !notSplitString ? array.split(', ') :lazyWrap(array))
     result.batchSize = 50000
     if (flatting)
       result.lazyFlat()
@@ -241,6 +241,10 @@ class MLArray extends Array {
    */
   getValuesExcept(key, val) {
     return this.filter(k => k[key] !== val)
+  }
+
+  wrap(dimension = 1) {
+    return MLArray.from(wrap(this, dimension))
   }
 
   /**

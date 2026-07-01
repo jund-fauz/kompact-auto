@@ -5,7 +5,7 @@
 /// <reference path="./DS-Event.js" />
 /// <reference path="./DS-UI.js" />
 /// <reference path="./F-Permission.js" />
-/// <reference path="./DS-Email.js" />
+/// <reference path="./DS-Session.js" />
 /// <reference path="./DS-Request Builder.js" />
 /// <reference path="../master-library/F-Drive.js" />
 /// <reference path="../master-library/JS-Array.js" />

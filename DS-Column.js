@@ -18,7 +18,7 @@ function getColumnLetter(columnNumber) {
     tempNumber = Math.floor((tempNumber - 1) / 26)
   }
 
-  return letter;
+  return letter
 }
 
 /**
@@ -31,16 +31,4 @@ function getColumnNum(columnLetter) {
     index = index * 26 + (columnLetter.toUpperCase().charCodeAt(i) - 64)
   }
   return index
-}
-
-/**
- * @param {string} columnLetter
- * @return {number}
- */
-function getColumnIndex(columnLetter) {
-  let index = 0
-  for (let i = 0; i < columnLetter.length; i++) {
-    index = index * 26 + (columnLetter.toUpperCase().charCodeAt(i) - 64)
-  }
-  return index - 1
 }

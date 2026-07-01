@@ -64,7 +64,7 @@ class Storage {
     if (!(currentDatas instanceof MLObject))
       currentDatas = initObject({ [keys[0]]: currentDatas })
     keys.iterate((key, no) => {
-      switch (currentDatas[key].constructor.name) {
+      switch (currentDatas[key]?.constructor?.name) {
         case mlArray:
           currentDatas[key].push(values[no])
           break

@@ -7,9 +7,8 @@ const config = {
 }
 
 /**
- * Mendapatkan Folder object dari path
- * Contoh: "/Folder1/SubFolder2/SubFolder3"
- * @param {string} path Path folder (dimulai dengan /)
+ * Mendapatkan Folder id dari path
+ * @param {string} path Path folder (dimulai dengan /). Contoh: "/Folder1/SubFolder2/SubFolder3"
  * @param {{ isSharedAccount?: boolean, withLog?: boolean }} options
  * @return {string|null} ID Folder atau null jika tidak ditemukan
  */

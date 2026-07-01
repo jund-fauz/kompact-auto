@@ -24,12 +24,9 @@ class DSRange {
     const { withLastColumn = false, zeroBased = false, isLetter = false } = options
     const columns = this.partialRange.map(a1N => {
       const column = a1N.match(Regex.ColumnLetter.WithoutNumber)?.[0]
-      if (column) {
-        if (zeroBased)
-          return getColumnIndex(column)
-        else if (!isLetter)
-          return getColumnNum(column)
-      }
+      if (column)
+        if (!isLetter)
+          return getColumnNum(column) - zeroBased
       return column
     })
     if (this.withLog)
